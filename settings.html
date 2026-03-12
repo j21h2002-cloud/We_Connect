@@ -367,6 +367,11 @@ async function saveUser() {
     if (error) { showToast('수정 실패: ' + error.message, 'danger'); return }
     // 데모 모드: 비밀번호도 변경 가능
     if (IS_DEMO && password) _DEMO_CREDS[username] = password
+    // 현재 로그인된 사용자 정보가 수정된 경우 sessionStorage도 갱신
+    const me = getCurrentUser()
+    if (me && me.id === editId) {
+      sessionStorage.setItem('current_user', JSON.stringify({ ...me, name, email, role }))
+    }
     showToast('수정되었습니다.')
   } else {
     // 추가: Auth 계정 생성 + 프로필 삽입
