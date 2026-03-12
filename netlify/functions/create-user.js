@@ -14,7 +14,17 @@ exports.handler = async (event) => {
     return { statusCode: 405, body: 'Method Not Allowed' }
   }
 
-  const { username, password, name, role } = JSON.parse(event.body || '{}')
+  // 환경변수 확인
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ success: false, message: 'Netlify 환경변수(SUPABASE_URL, SUPABASE_SERVICE_KEY)가 설정되지 않았습니다.' })
+    }
+  }
+
+  let parsed = {}
+  try { parsed = JSON.parse(event.body || '{}') } catch { }
+  const { username, password, name, role } = parsed
 
   if (!username || !password || !name) {
     return {
