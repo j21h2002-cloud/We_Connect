@@ -379,16 +379,14 @@ async function saveUser() {
       const { error } = await sb.from('user_profiles').insert({ id: newId, username, name, role, active: true })
       if (error) { showToast('추가 실패', 'danger'); return }
     } else {
-      // 프로덕션: Supabase Auth signUp (이메일 인증 비활성화 필요)
-      const { data, error } = await sb.auth.signUp({
-        email: username + USER_DOMAIN,
-        password,
+      // 프로덕션: Netlify Function으로 계정 생성 (이메일 발송 없음)
+      const res = await fetch('/.netlify/functions/create-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password, name, role })
       })
-      if (error) { showToast('계정 생성 실패: ' + error.message, 'danger'); return }
-      const { error: e2 } = await sb.from('user_profiles').insert({
-        id: data.user.id, username, name, role, active: true
-      })
-      if (e2) { showToast('프로필 저장 실패: ' + e2.message, 'danger'); return }
+      const result = await res.json()
+      if (!result.success) { showToast('계정 생성 실패: ' + result.message, 'danger'); return }
     }
     showToast('사용자가 추가되었습니다.')
   }
