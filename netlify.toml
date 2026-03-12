@@ -1,0 +1,10 @@
+[build]
+  functions = "netlify/functions"
+  publish   = "."
+
+# SPA처럼 모든 경로를 index.html이 아닌 각 파일로 서빙
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"

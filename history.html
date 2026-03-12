@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>발송 이력</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="/index.html" class="brand">
+    <div class="brand-icon">💬</div>
+    <span class="brand-name">카카오 알림톡</span>
+  </a>
+  <div class="spacer"></div>
+  <a href="/index.html">발송</a>
+  <a href="/customers.html" data-role="admin">고객사</a>
+  <a href="/messages.html">메시지</a>
+  <a href="/history.html" style="color:#fff;font-weight:700" data-role="admin">이력</a>
+  <a href="/settings.html" data-role="admin">⚙️</a>
+  <span id="navUserName" class="user-name"></span>
+  <button class="btn-logout" onclick="logout()">로그아웃</button>
+</nav>
+
+<div class="container">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+    <h2 style="margin:0;font-size:18px">📋 발송 이력</h2>
+    <button class="btn btn-success btn-sm" onclick="exportExcel()">⬇ 엑셀 다운로드</button>
+  </div>
+
+  <div class="card">
+    <div style="overflow-x:auto">
+      <table>
+        <thead>
+          <tr>
+            <th>발송일시</th>
+            <th>템플릿</th>
+            <th class="hide-mobile">총 발송</th>
+            <th>성공</th>
+            <th>실패</th>
+            <th width="60"></th>
+          </tr>
+        </thead>
+        <tbody id="tBody">
+          <tr><td colspan="6" class="empty-state" style="padding:32px">로딩 중...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div id="pageInfo" style="text-align:center;font-size:13px;color:#888;margin-top:8px"></div>
+</div>
+
+<!-- 상세 모달 -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <span id="detailTitle">발송 상세</span>
+      <button class="btn-close" onclick="closeDetail()">×</button>
+    </div>
+    <div class="modal-body" id="detailBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeDetail()">닫기</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="/js/config.js"></script>
+<script>
+let historyData = []
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const user = await requireAuth()
+  if (!user) return
+  if (user.role !== 'admin') { showToast('관리자만 접근할 수 있습니다.', 'danger'); goto('/index.html'); return }
+  setupNavByRole(user.role)
+  load()
+})
+
+async function load() {
+  const { data, error } = await sb.from('send_history')
+    .select('*').order('created_at', { ascending: false })
+  if (error) { showToast('불러오기 실패', 'danger'); return }
+  historyData = data || []
+  render(historyData)
+}
+
+function render(list) {
+  document.getElementById('pageInfo').textContent = `전체 ${list.length}건`
+  const tbody = document.getElementById('tBody')
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><div class="icon">📋</div>발송 이력이 없습니다.</div></td></tr>'
+    return
+  }
+  tbody.innerHTML = list.map(h => {
+    const dt = new Date(h.created_at)
+    const dateStr = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`
+    const successRate = h.customer_count > 0 ? Math.round(h.success_count / h.customer_count * 100) : 0
+    return `
+      <tr>
+        <td style="white-space:nowrap">
+          <div style="font-size:13px">${dateStr}</div>
+          ${h.sent_by ? `<div style="font-size:11px;color:var(--txt-3);margin-top:2px">👤 ${h.sent_by}</div>` : ''}
+        </td>
+        <td>
+          <strong style="font-size:13px">${h.title || h.template_code}</strong>
+          ${h.template_code ? `<br><span style="font-size:11px;color:#888">${h.template_code}</span>` : ''}
+        </td>
+        <td class="hide-mobile" style="text-align:center">${h.customer_count || 0}명</td>
+        <td style="text-align:center">
+          <span class="badge badge-success">${h.success_count || 0}</span>
+        </td>
+        <td style="text-align:center">
+          ${(h.fail_count || 0) > 0
+            ? `<span class="badge badge-fail">${h.fail_count}</span>`
+            : '<span style="color:#9ca3af;font-size:12px">0</span>'}
+        </td>
+        <td>
+          <button class="btn btn-outline btn-sm" onclick="openDetail(${h.id})">상세</button>
+        </td>
+      </tr>
+    `
+  }).join('')
+}
+
+function openDetail(id) {
+  const h = historyData.find(x => x.id === id)
+  if (!h) return
+  const dt = new Date(h.created_at)
+  const dateStr = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`
+
+  document.getElementById('detailTitle').textContent = h.title || h.template_code
+  const recipients = h.recipients || []
+
+  document.getElementById('detailBody').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px">
+      <div style="background:#f8f8f8;border-radius:6px;padding:10px;text-align:center">
+        <div style="font-size:22px;font-weight:700">${h.customer_count || 0}</div>
+        <div style="font-size:12px;color:#888;margin-top:2px">총 발송</div>
+      </div>
+      <div style="background:#d1fae5;border-radius:6px;padding:10px;text-align:center">
+        <div style="font-size:22px;font-weight:700;color:#065f46">${h.success_count || 0}</div>
+        <div style="font-size:12px;color:#065f46;margin-top:2px">성공</div>
+      </div>
+      <div style="background:#fee2e2;border-radius:6px;padding:10px;text-align:center">
+        <div style="font-size:22px;font-weight:700;color:#991b1b">${h.fail_count || 0}</div>
+        <div style="font-size:12px;color:#991b1b;margin-top:2px">실패</div>
+      </div>
+    </div>
+    <div style="font-size:12px;color:#888;margin-bottom:10px">📅 ${dateStr} · 👤 ${h.sent_by || '-'} · 템플릿: ${h.template_code || '-'}</div>
+    ${recipients.length ? `
+      <div style="max-height:240px;overflow-y:auto;border:1px solid #f0f0f0;border-radius:6px">
+        ${recipients.map(r => `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid #f9f9f9;font-size:13px">
+            <span>${r.name || r.company_name || '-'}</span>
+            <span style="color:${r.status === 'success' ? '#198754' : '#dc3545'};font-weight:600">
+              ${r.status === 'success' ? '✓ 성공' : `✗ ${r.reason || '실패'}`}
+            </span>
+          </div>
+        `).join('')}
+      </div>
+    ` : '<div style="color:#9ca3af;font-size:13px;text-align:center;padding:16px">수신자 상세 정보가 없습니다.</div>'}
+  `
+  document.getElementById('detailModal').classList.add('open')
+}
+function closeDetail() { document.getElementById('detailModal').classList.remove('open') }
+
+async function exportExcel() {
+  if (!historyData.length) { showToast('다운로드할 이력이 없습니다.', 'warning'); return }
+  const rows = historyData.map(h => {
+    const dt = new Date(h.created_at)
+    const dateStr = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`
+    return {
+      '발송일시': dateStr,
+      '템플릿명': h.title || '',
+      '템플릿코드': h.template_code || '',
+      '총발송': h.customer_count || 0,
+      '성공': h.success_count || 0,
+      '실패': h.fail_count || 0,
+    }
+  })
+  const ws = XLSX.utils.json_to_sheet(rows)
+  ws['!cols'] = [{wch:18},{wch:20},{wch:16},{wch:8},{wch:6},{wch:6}]
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, '발송이력')
+  XLSX.writeFile(wb, '발송이력.xlsx')
+}
+</script>
+</body>
+</html>

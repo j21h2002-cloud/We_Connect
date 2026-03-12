@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>설정</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="/index.html" class="brand">
+    <div class="brand-icon">💬</div>
+    <span class="brand-name">카카오 알림톡</span>
+  </a>
+  <div class="spacer"></div>
+  <a href="/index.html">발송</a>
+  <a href="/customers.html" data-role="admin">고객사</a>
+  <a href="/messages.html">메시지</a>
+  <a href="/history.html" data-role="admin">이력</a>
+  <a href="/settings.html" style="color:#fff;font-weight:700" data-role="admin">⚙️</a>
+  <span id="navUserName" class="user-name"></span>
+  <button class="btn-logout" onclick="logout()">로그아웃</button>
+</nav>
+
+<div class="container" style="max-width:680px">
+  <h2 style="font-size:18px;font-weight:800;letter-spacing:-0.4px;margin-bottom:18px">⚙️ 설정</h2>
+
+  <!-- 사용자 관리 -->
+  <div class="card">
+    <div class="card-header" style="display:flex;align-items:center;flex-wrap:wrap;gap:6px">
+      👥 사용자 관리
+      <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-kakao btn-sm" onclick="openUserModal()">+ 추가</button>
+        <label class="btn btn-outline btn-sm" style="cursor:pointer;margin:0">
+          ⬆ 일괄 등록
+          <input type="file" accept=".xlsx,.xls" onchange="importUsers(this)" style="display:none">
+        </label>
+        <button class="btn btn-outline btn-sm" onclick="downloadUserTemplate()">📋 양식</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead>
+          <tr>
+            <th>아이디</th>
+            <th>성명</th>
+            <th>권한</th>
+            <th width="110"></th>
+          </tr>
+        </thead>
+        <tbody id="userTBody">
+          <tr><td colspan="4" class="empty-state" style="padding:24px">로딩 중...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 카카오 API 설정 -->
+  <div class="card">
+    <div class="card-header">🔑 카카오 API 설정</div>
+    <div class="card-body">
+      <div class="form-group">
+        <label>App Key (REST API Key)</label>
+        <input type="text" id="appKey" placeholder="카카오 REST API 키">
+      </div>
+      <div class="form-group">
+        <label>Sender Key <small style="color:var(--txt-3);font-weight:normal">(발신 프로필 키)</small></label>
+        <input type="text" id="senderKey" placeholder="알림톡 발신 프로필 키">
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+        <div class="form-group" style="flex:1;margin-bottom:0">
+          <label>발송자 아이디 <small style="color:var(--txt-3);font-weight:normal">(알리고 ID)</small></label>
+          <input type="text" id="userId" placeholder="알리고 아이디">
+        </div>
+        <div class="form-group" style="flex:1;margin-bottom:0">
+          <label>발신 번호</label>
+          <input type="text" id="senderNum" placeholder="01012345678">
+        </div>
+      </div>
+      <div style="margin-top:14px">
+        <button class="btn btn-kakao" onclick="saveApiKeys()">💾 저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 대표 이메일 SMTP 설정 -->
+  <div class="card">
+    <div class="card-header">📧 대표 이메일 SMTP 설정</div>
+    <div class="card-body">
+      <p style="font-size:13px;color:var(--txt-2);margin:0 0 14px;line-height:1.75">
+        회사 대표 이메일 주소로 발송할 SMTP 서버를 설정합니다.<br>
+        <span style="color:var(--txt-3)">
+          · <strong>회사 메일서버</strong>: <code style="background:var(--bg-sub);padding:1px 5px;border-radius:3px">smtp.company.com</code> · 포트 <code style="background:var(--bg-sub);padding:1px 5px;border-radius:3px">587</code> · 사내 계정 비밀번호<br>
+          · <strong>Office 365</strong>: <code style="background:var(--bg-sub);padding:1px 5px;border-radius:3px">smtp.office365.com</code> · 포트 <code style="background:var(--bg-sub);padding:1px 5px;border-radius:3px">587</code> · 계정 비밀번호<br>
+          · <strong>Gmail</strong>: <code style="background:var(--bg-sub);padding:1px 5px;border-radius:3px">smtp.gmail.com</code> · 포트 <code style="background:var(--bg-sub);padding:1px 5px;border-radius:3px">587</code> · 앱 비밀번호
+        </span>
+      </p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div class="form-group" style="flex:2;margin-bottom:0">
+          <label>SMTP 서버 주소</label>
+          <input type="text" id="smtpHost" placeholder="smtp.company.com">
+        </div>
+        <div class="form-group" style="flex:1;margin-bottom:0">
+          <label>포트 <small style="color:var(--txt-3);font-weight:normal">(SSL: 465 / TLS: 587)</small></label>
+          <input type="number" id="smtpPort" placeholder="587" value="587">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+        <div class="form-group" style="flex:1;margin-bottom:0">
+          <label>SMTP 계정 <small style="color:var(--txt-3);font-weight:normal">(인증용 Gmail 주소)</small></label>
+          <input type="email" id="smtpUser" placeholder="yourname@gmail.com">
+        </div>
+        <div class="form-group" style="flex:1;margin-bottom:0">
+          <label>비밀번호 <small style="color:var(--txt-3);font-weight:normal">(Gmail은 앱 비밀번호)</small></label>
+          <input type="password" id="smtpPass" placeholder="비밀번호">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+        <div class="form-group" style="flex:1;margin-bottom:0">
+          <label>발신자 이름 <small style="color:var(--txt-3);font-weight:normal">(수신자에게 표시)</small></label>
+          <input type="text" id="smtpFromName" placeholder="웹케시">
+        </div>
+      </div>
+      <div style="background:var(--bg-sub);border:1px solid var(--bdr-s);border-radius:var(--r8);padding:10px 12px;margin-top:12px;font-size:12px;color:var(--txt-3);line-height:1.6">
+        💡 Gmail SMTP로 연결하고 표시 이메일을 회사 주소로 설정하면, 수신자에게 회사 메일로 온 것처럼 보입니다.<br>
+        단, 개인 @gmail.com 계정은 일부 메일함에서 "xxx@gmail.com을 대신하여"로 표시될 수 있습니다.<br>
+        Google Workspace(@company.com) 계정을 사용하면 이 문구가 표시되지 않습니다.
+      </div>
+      <div style="margin-top:14px">
+        <button class="btn btn-kakao" onclick="saveEmailConfig()">💾 저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 회사 이메일 계정 관리 -->
+  <div class="card">
+    <div class="card-header" style="display:flex;align-items:center">
+      📧 회사 이메일 계정
+      <button class="btn btn-kakao btn-sm" style="margin-left:auto" onclick="openCompanyEmailModal()">+ 추가</button>
+    </div>
+    <div class="card-body" style="padding-bottom:0">
+      <p style="font-size:13px;color:var(--txt-2);margin:0 0 10px;line-height:1.6">
+        발송 시 발신자 이메일로 선택할 수 있는 회사 이메일 계정 목록입니다.<br>
+        <span style="color:var(--txt-3)">예: 대표메일(info@company.com), 영업팀(sales@company.com) 등</span>
+      </p>
+      <div id="companyEmailList">
+        <div style="padding:16px 0;text-align:center;color:var(--txt-3);font-size:13px">로딩 중...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Supabase 백업 -->
+  <div class="card">
+    <div class="card-header">☁️ 데이터 백업</div>
+    <div class="card-body">
+      <p style="font-size:13px;color:var(--txt-2);margin:0 0 14px;line-height:1.7">
+        고객사, 메시지, 발송 이력 데이터를 JSON 파일로 백업합니다.<br>
+        <span style="color:var(--txt-3)">Supabase Storage <code style="background:var(--bg-sub);padding:1px 5px;border-radius:3px">kakao-backups</code> 버킷에 저장됩니다.</span>
+      </p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="backupToSupabase()" id="backupBtn">☁️ Supabase에 백업</button>
+        <button class="btn btn-outline" onclick="downloadBackup()">⬇ 로컬 다운로드</button>
+      </div>
+      <div id="backupStatus" style="margin-top:12px;font-size:13px;line-height:1.5;display:none"></div>
+    </div>
+  </div>
+
+  <!-- 최근 백업 목록 -->
+  <div class="card" id="backupListCard" style="display:none">
+    <div class="card-header">📁 저장된 백업 파일</div>
+    <div class="card-body" id="backupListBody"></div>
+  </div>
+</div>
+
+<!-- 사용자 추가/수정 모달 -->
+<div class="modal-overlay" id="userModal">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header">
+      <span id="userModalTitle">사용자 추가</span>
+      <button class="btn-close" onclick="closeUserModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editUserId">
+      <div class="form-group">
+        <label>아이디 <span style="color:var(--red)">*</span></label>
+        <input type="text" id="f_username" placeholder="영문 소문자/숫자" autocomplete="off">
+        <div style="font-size:11px;color:var(--txt-3);margin-top:4px" id="usernameHint">로그인 시 사용할 아이디입니다.</div>
+      </div>
+      <div class="form-group">
+        <label>성명 <span style="color:var(--red)">*</span></label>
+        <input type="text" id="f_uname" placeholder="홍길동">
+      </div>
+      <div class="form-group">
+        <label>이메일 <small style="color:var(--txt-3);font-weight:normal">(발신자 이메일, 예: hong@company.com)</small></label>
+        <input type="email" id="f_uemail" placeholder="hong@company.com">
+      </div>
+      <div class="form-group">
+        <label>비밀번호 <span id="pwRequired" style="color:var(--red)">*</span><span id="pwOptional" style="color:var(--txt-3);font-size:11px;font-weight:normal;display:none"> (변경 시만 입력)</span></label>
+        <input type="password" id="f_upassword" placeholder="비밀번호" autocomplete="new-password">
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label>권한 <span style="color:var(--red)">*</span></label>
+        <select id="f_urole">
+          <option value="user">일반사용자</option>
+          <option value="admin">관리자</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeUserModal()">취소</button>
+      <button class="btn btn-kakao" onclick="saveUser()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 사용자 삭제 확인 -->
+<div class="modal-overlay" id="userDeleteModal">
+  <div class="modal" style="max-width:340px">
+    <div class="modal-header">
+      <span>삭제 확인</span>
+      <button class="btn-close" onclick="closeUserDeleteModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <strong id="deleteUserTarget"></strong> 사용자를 삭제하시겠습니까?<br>
+      <span style="font-size:12px;color:var(--txt-3)">삭제 후 해당 아이디로 로그인할 수 없습니다.</span>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeUserDeleteModal()">취소</button>
+      <button class="btn btn-danger" onclick="doDeleteUser()">삭제</button>
+    </div>
+  </div>
+</div>
+
+<!-- 회사 이메일 추가/수정 모달 -->
+<div class="modal-overlay" id="companyEmailModal">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <span id="companyEmailModalTitle">회사 이메일 추가</span>
+      <button class="btn-close" onclick="closeCompanyEmailModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editCompanyEmailId">
+      <div class="form-group">
+        <label>표시 이름 <span style="color:var(--red)">*</span> <small style="color:var(--txt-3);font-weight:normal">(예: 대표메일, 영업팀)</small></label>
+        <input type="text" id="f_ceLabel" placeholder="영업팀">
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label>이메일 주소 <span style="color:var(--red)">*</span></label>
+        <input type="email" id="f_ceEmail" placeholder="sales@company.com">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeCompanyEmailModal()">취소</button>
+      <button class="btn btn-kakao" onclick="saveCompanyEmail()">저장</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="/js/config.js"></script>
+<script>
+let deleteUserId = null
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const user = await requireAuth()
+  if (!user) return
+  if (user.role !== 'admin') {
+    showToast('관리자만 접근할 수 있습니다.', 'danger')
+    goto('/index.html')
+    return
+  }
+  setupNavByRole(user.role)
+  loadConfig()
+  loadEmailConfig()
+  loadCompanyEmails()
+  loadBackupList()
+  loadUsers()
+})
+
+// ── 사용자 관리 ───────────────────────────────────────
+async function loadUsers() {
+  const { data } = await sb.from('user_profiles').select('*').order('created_at')
+  renderUsers(data || [])
+}
+
+function renderUsers(list) {
+  const tbody = document.getElementById('userTBody')
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="4" class="empty-state" style="padding:20px">등록된 사용자가 없습니다.</td></tr>'
+    return
+  }
+  const me = getCurrentUser()
+  tbody.innerHTML = list.map(u => `
+    <tr>
+      <td>
+        <strong>${u.username}</strong>
+        ${me?.id === u.id ? ' <span style="font-size:11px;color:var(--indigo);font-weight:600">(나)</span>' : ''}
+      </td>
+      <td>${u.name}</td>
+      <td>
+        <span class="badge ${u.role === 'admin' ? 'badge-kakao' : 'badge-gray'}">
+          ${u.role === 'admin' ? '관리자' : '일반사용자'}
+        </span>
+      </td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-outline btn-sm" onclick='openUserEdit(${JSON.stringify(u).replace(/'/g,"&#39;")})'>수정</button>
+        ${me?.id !== u.id
+          ? `<button class="btn btn-danger btn-sm" onclick="confirmDeleteUser('${u.id}','${u.name}')">삭제</button>`
+          : ''}
+      </td>
+    </tr>
+  `).join('')
+}
+
+function openUserModal() {
+  document.getElementById('userModalTitle').textContent = '사용자 추가'
+  document.getElementById('editUserId').value = ''
+  document.getElementById('f_username').value = ''
+  document.getElementById('f_username').disabled = false
+  document.getElementById('usernameHint').style.display = ''
+  document.getElementById('f_uname').value = ''
+  document.getElementById('f_uemail').value = ''
+  document.getElementById('f_upassword').value = ''
+  document.getElementById('f_urole').value = 'user'
+  document.getElementById('pwRequired').style.display = ''
+  document.getElementById('pwOptional').style.display = 'none'
+  document.getElementById('userModal').classList.add('open')
+}
+
+function openUserEdit(u) {
+  document.getElementById('userModalTitle').textContent = '사용자 수정'
+  document.getElementById('editUserId').value = u.id
+  document.getElementById('f_username').value = u.username
+  document.getElementById('f_username').disabled = true
+  document.getElementById('usernameHint').style.display = 'none'
+  document.getElementById('f_uname').value = u.name
+  document.getElementById('f_uemail').value = u.email || ''
+  document.getElementById('f_upassword').value = ''
+  document.getElementById('f_urole').value = u.role
+  document.getElementById('pwRequired').style.display = 'none'
+  document.getElementById('pwOptional').style.display = ''
+  document.getElementById('userModal').classList.add('open')
+}
+
+function closeUserModal() { document.getElementById('userModal').classList.remove('open') }
+
+async function saveUser() {
+  const editId   = document.getElementById('editUserId').value
+  const isEdit   = !!editId
+  const username = document.getElementById('f_username').value.trim().toLowerCase()
+  const name     = document.getElementById('f_uname').value.trim()
+  const email    = document.getElementById('f_uemail').value.trim().toLowerCase() || null
+  const password = document.getElementById('f_upassword').value
+  const role     = document.getElementById('f_urole').value
+
+  if (!username || !name)   { showToast('아이디와 성명을 입력하세요.', 'warning'); return }
+  if (!isEdit && !password) { showToast('비밀번호를 입력하세요.', 'warning'); return }
+  if (!/^[a-z0-9_]{2,20}$/.test(username) && !isEdit) {
+    showToast('아이디는 영문 소문자/숫자 2~20자로 입력하세요.', 'warning'); return
+  }
+
+  if (isEdit) {
+    // 수정: 성명·권한만 변경 (Supabase profile 업데이트)
+    const { error } = await sb.from('user_profiles').update({ name, email, role }).eq('id', editId)
+    if (error) { showToast('수정 실패: ' + error.message, 'danger'); return }
+    // 데모 모드: 비밀번호도 변경 가능
+    if (IS_DEMO && password) _DEMO_CREDS[username] = password
+    showToast('수정되었습니다.')
+  } else {
+    // 추가: Auth 계정 생성 + 프로필 삽입
+    if (IS_DEMO) {
+      if (_DEMO_CREDS[username] !== undefined) {
+        showToast('이미 존재하는 아이디입니다.', 'warning'); return
+      }
+      const newId = 'demo-' + username + '-' + Date.now()
+      _DEMO_CREDS[username] = password
+      const { error } = await sb.from('user_profiles').insert({ id: newId, username, name, role, active: true })
+      if (error) { showToast('추가 실패', 'danger'); return }
+    } else {
+      // 프로덕션: Supabase Auth signUp (이메일 인증 비활성화 필요)
+      const { data, error } = await sb.auth.signUp({
+        email: username + USER_DOMAIN,
+        password,
+      })
+      if (error) { showToast('계정 생성 실패: ' + error.message, 'danger'); return }
+      const { error: e2 } = await sb.from('user_profiles').insert({
+        id: data.user.id, username, name, role, active: true
+      })
+      if (e2) { showToast('프로필 저장 실패: ' + e2.message, 'danger'); return }
+    }
+    showToast('사용자가 추가되었습니다.')
+  }
+  closeUserModal()
+  loadUsers()
+}
+
+function confirmDeleteUser(id, name) {
+  deleteUserId = id
+  document.getElementById('deleteUserTarget').textContent = name
+  document.getElementById('userDeleteModal').classList.add('open')
+}
+function closeUserDeleteModal() { document.getElementById('userDeleteModal').classList.remove('open') }
+
+async function doDeleteUser() {
+  if (IS_DEMO) {
+    const profile = _DB.user_profiles.find(u => u.id === deleteUserId)
+    if (profile) delete _DEMO_CREDS[profile.username]
+  }
+  const { error } = await sb.from('user_profiles').delete().eq('id', deleteUserId)
+  if (error) { showToast('삭제 실패: ' + error.message, 'danger'); return }
+  closeUserDeleteModal()
+  showToast('삭제되었습니다.')
+  loadUsers()
+}
+
+// ── 사용자 일괄 등록 ──────────────────────────────────
+async function importUsers(input) {
+  const file = input.files[0]
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = async (e) => {
+    const wb   = XLSX.read(e.target.result, { type: 'binary' })
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]])
+    if (!rows.length) { showToast('가져올 데이터가 없습니다.', 'warning'); return }
+
+    let ok = 0, fail = 0, failList = []
+
+    for (const row of rows) {
+      const username = String(row['아이디'] || '').trim().toLowerCase()
+      const name     = String(row['성명']   || '').trim()
+      const email    = String(row['이메일'] || '').trim().toLowerCase() || null
+      const password = String(row['비밀번호'] || '').trim()
+      const role     = row['권한'] === '관리자' ? 'admin' : 'user'
+
+      if (!username || !name || !password) {
+        fail++; failList.push((username || '빈값') + ' (필수값 누락)'); continue
+      }
+
+      if (IS_DEMO) {
+        if (_DEMO_CREDS[username] !== undefined) {
+          fail++; failList.push(username + ' (중복)'); continue
+        }
+        const newId = 'demo-' + username + '-' + Date.now()
+        _DEMO_CREDS[username] = password
+        const { error } = await sb.from('user_profiles').insert({ id: newId, username, name, email, role, active: true })
+        if (error) { fail++; failList.push(username + ' (DB오류)') } else { ok++ }
+      } else {
+        try {
+          const { data, error } = await sb.auth.signUp({ email: username + USER_DOMAIN, password })
+          if (error) throw error
+          await sb.from('user_profiles').insert({ id: data.user.id, username, name, email, role, active: true })
+          ok++
+        } catch (err) {
+          fail++; failList.push(username + ' (' + err.message + ')')
+        }
+      }
+    }
+
+    input.value = ''
+    showToast(
+      `총 ${rows.length}건 → 성공 ${ok}건${fail ? ` / 실패 ${fail}건` : ''}`,
+      fail ? 'warning' : 'success'
+    )
+    if (failList.length) console.warn('등록 실패:', failList)
+    loadUsers()
+  }
+  reader.readAsBinaryString(file)
+}
+
+function downloadUserTemplate() {
+  const ws = XLSX.utils.aoa_to_sheet([
+    ['아이디', '성명', '이메일', '비밀번호', '권한'],
+    ['user2',  '김철수', 'chul@company.com', 'pass1234', '일반사용자'],
+    ['user3',  '이영희', 'lee@company.com',  'pass5678', '일반사용자'],
+    ['admin2', '박관리', 'park@company.com', 'admin999', '관리자'],
+  ])
+  ws['!cols'] = [{wch:16},{wch:12},{wch:22},{wch:14},{wch:12}]
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, '사용자목록')
+
+  // 작성 안내 시트
+  const ws2 = XLSX.utils.aoa_to_sheet([
+    ['컬럼명',   '필수', '설명'],
+    ['아이디',   '필수', '영문 소문자/숫자 (로그인 ID)'],
+    ['성명',     '필수', '화면에 표시될 이름'],
+    ['이메일',   '선택', '발신자 이메일 (예: hong@company.com)'],
+    ['비밀번호', '필수', '초기 비밀번호'],
+    ['권한',     '필수', '"관리자" 또는 "일반사용자"'],
+  ])
+  ws2['!cols'] = [{wch:14},{wch:8},{wch:30}]
+  XLSX.utils.book_append_sheet(wb, ws2, '작성안내')
+  XLSX.writeFile(wb, '사용자_등록_양식.xlsx')
+}
+
+// ── 회사 이메일 계정 관리 ─────────────────────────────
+async function loadCompanyEmails() {
+  const { data } = await sb.from('company_emails').select('*').order('label')
+  renderCompanyEmails(data || [])
+}
+
+function renderCompanyEmails(list) {
+  const container = document.getElementById('companyEmailList')
+  if (!list.length) {
+    container.innerHTML = '<div style="padding:16px 0;text-align:center;color:var(--txt-3);font-size:13px">등록된 회사 이메일이 없습니다.</div>'
+    return
+  }
+  container.innerHTML = list.map(ce => `
+    <div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--bdr-s);font-size:13px">
+      <div style="flex:1">
+        <div style="font-weight:600">${ce.label}</div>
+        <div style="color:var(--txt-3);font-size:12px;margin-top:2px">${ce.email}</div>
+      </div>
+      <button class="btn btn-outline btn-sm" onclick='openCompanyEmailModal(${JSON.stringify(ce)})'>수정</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteCompanyEmail(${ce.id},'${ce.label}')">삭제</button>
+    </div>
+  `).join('')
+}
+
+function openCompanyEmailModal(ce) {
+  document.getElementById('companyEmailModalTitle').textContent = ce ? '회사 이메일 수정' : '회사 이메일 추가'
+  document.getElementById('editCompanyEmailId').value = ce?.id || ''
+  document.getElementById('f_ceLabel').value = ce?.label || ''
+  document.getElementById('f_ceEmail').value = ce?.email || ''
+  document.getElementById('companyEmailModal').classList.add('open')
+}
+
+function closeCompanyEmailModal() {
+  document.getElementById('companyEmailModal').classList.remove('open')
+}
+
+async function saveCompanyEmail() {
+  const editId = document.getElementById('editCompanyEmailId').value
+  const label  = document.getElementById('f_ceLabel').value.trim()
+  const email  = document.getElementById('f_ceEmail').value.trim().toLowerCase()
+  if (!label || !email) { showToast('표시 이름과 이메일을 입력하세요.', 'warning'); return }
+
+  if (editId) {
+    const { error } = await sb.from('company_emails').update({ label, email }).eq('id', editId)
+    if (error) { showToast('수정 실패: ' + error.message, 'danger'); return }
+    showToast('수정되었습니다.')
+  } else {
+    const { error } = await sb.from('company_emails').insert({ label, email })
+    if (error) { showToast('추가 실패: ' + error.message, 'danger'); return }
+    showToast('회사 이메일이 추가되었습니다.')
+  }
+  closeCompanyEmailModal()
+  loadCompanyEmails()
+}
+
+async function deleteCompanyEmail(id, label) {
+  if (!confirm(`"${label}" 이메일을 삭제하시겠습니까?`)) return
+  const { error } = await sb.from('company_emails').delete().eq('id', id)
+  if (error) { showToast('삭제 실패: ' + error.message, 'danger'); return }
+  showToast('삭제되었습니다.')
+  loadCompanyEmails()
+}
+
+// ── 카카오 API 설정 ───────────────────────────────────
+async function loadConfig() {
+  const { data } = await sb.from('kakao_config').select('*').eq('id', 1).single()
+  if (data) {
+    document.getElementById('appKey').value    = data.app_key    || ''
+    document.getElementById('senderKey').value = data.sender_key || ''
+    document.getElementById('userId').value    = data.user_id    || ''
+    document.getElementById('senderNum').value = data.sender_num || ''
+  }
+}
+
+async function saveApiKeys() {
+  const app_key    = document.getElementById('appKey').value.trim()
+  const sender_key = document.getElementById('senderKey').value.trim()
+  const user_id    = document.getElementById('userId').value.trim()
+  const sender_num = document.getElementById('senderNum').value.replace(/[-\s]/g,'')
+
+  const { error } = await sb.from('kakao_config').upsert({ id:1, app_key, sender_key, user_id, sender_num })
+  if (error) { showToast('저장 실패: ' + error.message, 'danger'); return }
+  showToast('설정이 저장되었습니다.')
+}
+
+// ── 이메일 SMTP 설정 ──────────────────────────────────
+async function loadEmailConfig() {
+  const { data } = await sb.from('email_config').select('*').eq('id', 1).single()
+  if (data) {
+    document.getElementById('smtpHost').value      = data.smtp_host   || ''
+    document.getElementById('smtpPort').value      = data.smtp_port   || 587
+    document.getElementById('smtpUser').value      = data.smtp_user   || ''
+    document.getElementById('smtpPass').value      = data.smtp_pass   || ''
+    document.getElementById('smtpFromName').value  = data.from_name   || ''
+  }
+}
+
+async function saveEmailConfig() {
+  const smtp_host  = document.getElementById('smtpHost').value.trim()
+  const smtp_port  = parseInt(document.getElementById('smtpPort').value) || 587
+  const smtp_user  = document.getElementById('smtpUser').value.trim()
+  const smtp_pass  = document.getElementById('smtpPass').value
+  const from_name  = document.getElementById('smtpFromName').value.trim()
+
+  const { error } = await sb.from('email_config').upsert({ id:1, smtp_host, smtp_port, smtp_user, smtp_pass, from_name })
+  if (error) { showToast('저장 실패: ' + error.message, 'danger'); return }
+  showToast('이메일 설정이 저장되었습니다.')
+}
+
+// ── 백업 ──────────────────────────────────────────────
+async function gatherBackupData() {
+  const [{ data: customers }, { data: history }, { data: messages }] = await Promise.all([
+    sb.from('customers').select('*').order('company_name'),
+    sb.from('send_history').select('*').order('created_at', { ascending: false }),
+    sb.from('messages').select('*').order('title'),
+  ])
+  return {
+    exportedAt:   new Date().toISOString(),
+    customers:    customers  || [],
+    messages:     messages   || [],
+    send_history: history    || [],
+  }
+}
+
+async function downloadBackup() {
+  const data = await gatherBackupData()
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+  const url  = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `kakao_backup_${new Date().toISOString().replace(/[:.]/g,'-').slice(0,19)}.json`
+  a.click()
+  URL.revokeObjectURL(url)
+  showToast('백업 파일이 다운로드되었습니다.')
+}
+
+async function backupToSupabase() {
+  const btn = document.getElementById('backupBtn')
+  const statusEl = document.getElementById('backupStatus')
+  btn.disabled = true
+  btn.innerHTML = '<span class="spinner"></span> 백업 중...'
+  statusEl.style.display = 'none'
+
+  try {
+    const data = await gatherBackupData()
+    const fileName = `backup_${new Date().toISOString().replace(/[:.]/g,'-').slice(0,19)}.json`
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+
+    const { error } = await sb.storage.from('kakao-backups').upload(fileName, blob, {
+      contentType: 'application/json', upsert: false
+    })
+
+    if (error) {
+      statusEl.innerHTML = error.message?.includes('Bucket not found')
+        ? '❌ Storage 버킷 <code>kakao-backups</code> 가 없습니다.<br><small>Supabase → Storage → New Bucket → "kakao-backups" 생성 후 재시도</small>'
+        : '❌ 업로드 실패: ' + error.message
+      statusEl.style.color = 'var(--red)'
+      statusEl.style.display = 'block'
+      showToast('업로드 실패', 'danger')
+    } else {
+      statusEl.textContent = `✅ 백업 완료: ${fileName} (고객사 ${data.customers.length}건 · 이력 ${data.send_history.length}건)`
+      statusEl.style.color = 'var(--green)'
+      statusEl.style.display = 'block'
+      showToast('Supabase에 백업되었습니다!')
+      loadBackupList()
+    }
+  } catch (e) {
+    statusEl.textContent = '❌ 오류: ' + e.message
+    statusEl.style.color = 'var(--red)'
+    statusEl.style.display = 'block'
+    showToast('오류: ' + e.message, 'danger')
+  } finally {
+    btn.disabled = false
+    btn.innerHTML = '☁️ Supabase에 백업'
+  }
+}
+
+async function loadBackupList() {
+  const { data, error } = await sb.storage.from('kakao-backups').list('', {
+    sortBy: { column: 'created_at', order: 'desc' }, limit: 10
+  })
+  if (error || !data?.length) return
+
+  document.getElementById('backupListCard').style.display = 'block'
+  document.getElementById('backupListBody').innerHTML = data.map(f => {
+    const size = f.metadata?.size ? (f.metadata.size/1024).toFixed(1)+' KB' : '-'
+    const date = f.created_at ? new Date(f.created_at).toLocaleString('ko-KR') : '-'
+    return `
+      <div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--bdr-s);font-size:13px">
+        <div style="flex:1">
+          <div style="font-weight:600">${f.name}</div>
+          <div style="color:var(--txt-3);font-size:11px;margin-top:2px">${date} · ${size}</div>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="downloadFromStorage('${f.name}')">⬇</button>
+      </div>`
+  }).join('')
+}
+
+async function downloadFromStorage(fileName) {
+  const { data, error } = await sb.storage.from('kakao-backups').download(fileName)
+  if (error) { showToast('다운로드 실패: ' + error.message, 'danger'); return }
+  const url = URL.createObjectURL(data)
+  const a = document.createElement('a')
+  a.href = url; a.download = fileName; a.click()
+  URL.revokeObjectURL(url)
+}
+</script>
+</body>
+</html>

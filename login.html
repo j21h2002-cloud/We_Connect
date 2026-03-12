@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>웹케시그룹 — 알림톡</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif;
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .login-container {
+      width: 100%;
+      max-width: 460px;
+    }
+
+    .login-card {
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.22);
+      padding: 52px 44px 44px;
+      text-align: center;
+    }
+
+    /* 로고 */
+    .brand-logo {
+      margin: 0 auto 28px;
+      display: flex;
+      justify-content: center;
+    }
+    .brand-logo img {
+      max-width: 200px;
+      height: auto;
+    }
+
+    /* 제목 */
+    .title {
+      font-size: 2em;
+      font-weight: 800;
+      color: #1f2937;
+      margin-bottom: 6px;
+      letter-spacing: -0.5px;
+    }
+
+    .subtitle {
+      font-size: 1em;
+      font-weight: 700;
+      color: #6366f1;
+      letter-spacing: 3px;
+      margin-bottom: 40px;
+      text-transform: uppercase;
+    }
+
+    /* 에러 */
+    .login-error {
+      background: #fee2e2;
+      color: #dc2626;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      font-size: 0.9em;
+      text-align: left;
+      display: none;
+      align-items: center;
+      gap: 8px;
+    }
+    .login-error.show { display: flex; }
+
+    /* 폼 */
+    .form-group {
+      margin-bottom: 18px;
+      text-align: left;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #374151;
+      font-size: 0.9em;
+    }
+    .form-group input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 10px;
+      font-size: 1em;
+      background: #f9fafb;
+      color: #111827;
+      transition: all 0.2s;
+    }
+    .form-group input::placeholder { color: #9ca3af; }
+    .form-group input:focus {
+      outline: none;
+      border-color: #6366f1;
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+    }
+
+    /* 버튼 */
+    .btn-login {
+      width: 100%;
+      padding: 15px;
+      background: #4169E1;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 1.05em;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 6px;
+      margin-bottom: 24px;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-login:hover {
+      background: #3758cc;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(65, 105, 225, 0.38);
+    }
+    .btn-login:active { transform: translateY(0); }
+    .btn-login:disabled { opacity: 0.7; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    /* 안내 박스 */
+    .info-box {
+      background: #f0f4ff;
+      padding: 14px 16px;
+      border-radius: 10px;
+      text-align: left;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .info-box .info-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+    .info-box .info-title {
+      color: #4169E1;
+      font-weight: 700;
+      font-size: 0.87em;
+      margin-bottom: 3px;
+    }
+    .info-box .info-desc {
+      color: #6b7280;
+      font-size: 0.82em;
+    }
+
+    /* 스피너 */
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* 반응형 */
+    @media (max-width: 480px) {
+      .login-card { padding: 40px 24px 36px; }
+      .title { font-size: 1.75em; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="login-container">
+  <div class="login-card">
+
+    <!-- 로고 -->
+    <div class="brand-logo">
+      <img src="/logo.png" alt="웹케시그룹 로고">
+    </div>
+
+    <!-- 제목 -->
+    <h1 class="title">웹케시그룹</h1>
+    <p class="subtitle">We Connect</p>
+
+    <!-- 에러 메시지 -->
+    <div class="login-error" id="errBox">
+      <span>⚠️</span>
+      <span id="errMsg"></span>
+    </div>
+
+    <!-- 로그인 폼 -->
+    <div class="form-group">
+      <label for="loginId">아이디</label>
+      <input type="text" id="loginId" placeholder="아이디를 입력하세요" autocomplete="username">
+    </div>
+    <div class="form-group" style="margin-bottom:28px">
+      <label for="password">비밀번호</label>
+      <input type="password" id="password" placeholder="비밀번호를 입력하세요" autocomplete="current-password">
+    </div>
+
+    <button class="btn-login" onclick="doLogin()" id="loginBtn">
+      <span id="btnText">로그인</span>
+    </button>
+
+    <!-- 안내 -->
+    <div class="info-box">
+      <span class="info-icon">ℹ️</span>
+      <div>
+        <p class="info-title">계정이 없으신가요?</p>
+        <p class="info-desc">관리자에게 문의하여 계정을 발급받으세요.</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/config.js"></script>
+<script>
+sb.auth.getSession().then(({ data: { session } }) => {
+  if (session) window.location.href = '/index.html'
+})
+
+document.getElementById('loginId').addEventListener('keypress', e => {
+  if (e.key === 'Enter') document.getElementById('password').focus()
+})
+document.getElementById('password').addEventListener('keypress', e => {
+  if (e.key === 'Enter') doLogin()
+})
+
+async function doLogin() {
+  const id       = document.getElementById('loginId').value.trim().toLowerCase()
+  const password = document.getElementById('password').value
+  const errBox   = document.getElementById('errBox')
+  const errMsg   = document.getElementById('errMsg')
+  const btnText  = document.getElementById('btnText')
+  const loginBtn = document.getElementById('loginBtn')
+
+  errBox.classList.remove('show')
+
+  if (!id || !password) {
+    errMsg.textContent = '아이디와 비밀번호를 입력하세요.'
+    errBox.classList.add('show')
+    return
+  }
+
+  loginBtn.disabled = true
+  btnText.innerHTML = '<span class="spinner"></span>&nbsp;로그인 중...'
+
+  const { error } = await sb.auth.signInWithPassword({
+    email: id + USER_DOMAIN,
+    password,
+  })
+
+  if (error) {
+    errMsg.textContent = error.message || '아이디 또는 비밀번호가 올바르지 않습니다.'
+    errBox.classList.add('show')
+    loginBtn.disabled = false
+    btnText.textContent = '로그인'
+  } else {
+    window.location.href = '/index.html'
+  }
+}
+</script>
+</body>
+</html>

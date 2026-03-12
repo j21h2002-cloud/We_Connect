@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>고객사 관리</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    #tBody td { white-space: nowrap; }
+    #tBody td.email-cell {
+      max-width: 180px; overflow: hidden;
+      text-overflow: ellipsis; white-space: nowrap;
+    }
+    #tBody td.memo-cell {
+      max-width: 130px; overflow: hidden;
+      text-overflow: ellipsis; white-space: nowrap;
+      color: var(--txt-3); font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="/index.html" class="brand">
+    <div class="brand-icon">💬</div>
+    <span class="brand-name">카카오 알림톡</span>
+  </a>
+  <div class="spacer"></div>
+  <a href="/index.html">발송</a>
+  <a href="/customers.html" style="color:#fff;font-weight:700" data-role="admin">고객사</a>
+  <a href="/messages.html">메시지</a>
+  <a href="/history.html" data-role="admin">이력</a>
+  <a href="/settings.html" data-role="admin">⚙️</a>
+  <span id="navUserName" class="user-name"></span>
+  <button class="btn-logout" onclick="logout()">로그아웃</button>
+</nav>
+
+<div class="container">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+    <h2 style="font-size:18px;font-weight:800;letter-spacing:-0.4px">🏢 고객사 관리</h2>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="btn btn-kakao" onclick="openModal()">+ 추가</button>
+      <button class="btn btn-success btn-sm" onclick="exportExcel()">⬇ 엑셀 다운로드</button>
+      <label class="btn btn-outline btn-sm" style="cursor:pointer">
+        ⬆ 엑셀 가져오기
+        <input type="file" accept=".xlsx,.xls" onchange="importExcel(this)" style="display:none">
+      </label>
+      <a class="btn btn-outline btn-sm" href="/customers_template.xlsx" download>📋 양식</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body" style="padding-bottom:8px">
+      <div class="input-group">
+        <input type="text" id="searchInput" placeholder="회사명 / 담당자 / 연락처 / 산업군">
+        <button class="btn btn-kakao" onclick="search()">검색</button>
+        <button class="btn btn-outline" onclick="load()">전체</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+      <table style="min-width:750px">
+        <thead>
+          <tr>
+            <th style="min-width:120px">회사명</th>
+            <th class="hide-mobile" style="min-width:72px">담당자</th>
+            <th style="min-width:120px">연락처</th>
+            <th class="hide-mobile" style="min-width:160px">이메일</th>
+            <th class="hide-mobile" style="min-width:100px">산업군</th>
+            <th class="hide-mobile" style="min-width:80px">비고</th>
+            <th width="80"></th>
+          </tr>
+        </thead>
+        <tbody id="tBody">
+          <tr><td colspan="7" class="empty-state" style="padding:32px">로딩 중...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div id="pageInfo" style="text-align:center;font-size:13px;color:var(--txt-3);margin-top:8px"></div>
+</div>
+
+<!-- 추가/수정 모달 -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span id="modalTitle">고객사 추가</span>
+      <button class="btn-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editId">
+      <div class="form-group">
+        <label>회사명 <span style="color:var(--red)">*</span></label>
+        <input type="text" id="f_company_name" placeholder="회사명을 입력하세요">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="form-group">
+          <label>담당자</label>
+          <input type="text" id="f_contact_name" placeholder="담당자명">
+        </div>
+        <div class="form-group">
+          <label>연락처 <small style="color:var(--txt-3);font-weight:normal">(알림톡/SMS)</small></label>
+          <input type="text" id="f_phone" placeholder="01012345678">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>이메일</label>
+        <input type="email" id="f_email" placeholder="example@company.com">
+      </div>
+      <div class="form-group">
+        <label>산업군</label>
+        <select id="f_industry">
+          <option value="">-- 선택 --</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>비고</label>
+        <textarea id="f_memo" rows="2" placeholder="메모 또는 특이사항"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">취소</button>
+      <button class="btn btn-kakao" onclick="save()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 삭제 확인 모달 -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal" style="max-width:340px">
+    <div class="modal-header">
+      <span>삭제 확인</span>
+      <button class="btn-close" onclick="closeDeleteModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <strong id="deleteTarget"></strong>을(를) 삭제하시겠습니까?
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeDeleteModal()">취소</button>
+      <button class="btn btn-danger" onclick="doDelete()">삭제</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="/js/config.js"></script>
+<script>
+let deleteId = null
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const user = await requireAuth()
+  if (!user) return
+  if (user.role !== 'admin') { showToast('관리자만 접근할 수 있습니다.', 'danger'); goto('/index.html'); return }
+  setupNavByRole(user.role)
+
+  // 산업군 select 옵션 채우기
+  const sel = document.getElementById('f_industry')
+  INDUSTRIES.forEach(ind => {
+    sel.innerHTML += `<option value="${ind}">${ind}</option>`
+  })
+
+  document.getElementById('searchInput').addEventListener('keypress', e => {
+    if (e.key === 'Enter') search()
+  })
+  load()
+})
+
+async function load() {
+  const { data, error } = await sb.from('customers').select('*').order('company_name')
+  if (error) { showToast('불러오기 실패', 'danger'); return }
+  render(data || [])
+}
+
+async function search() {
+  const q = document.getElementById('searchInput').value.trim()
+  if (!q) { load(); return }
+  const { data } = await sb.from('customers').select('*')
+    .or(`company_name.ilike.%${q}%,contact_name.ilike.%${q}%,phone.ilike.%${q}%,email.ilike.%${q}%,industry.ilike.%${q}%`)
+    .order('company_name')
+  render(data || [])
+}
+
+function render(list) {
+  document.getElementById('pageInfo').textContent = `전체 ${list.length}건`
+  const tbody = document.getElementById('tBody')
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><span class="icon">🏢</span><div>고객사가 없습니다</div></div></td></tr>'
+    return
+  }
+  tbody.innerHTML = list.map(c => `
+    <tr>
+      <td><strong>${c.company_name}</strong></td>
+      <td class="hide-mobile">${c.contact_name || '-'}</td>
+      <td>
+        ${c.phone
+          ? `<span class="badge badge-kakao">${c.phone}</span>`
+          : '<span style="color:var(--red);font-size:12px">미등록</span>'}
+      </td>
+      <td class="hide-mobile email-cell">
+        ${c.email
+          ? `<a href="mailto:${c.email}" style="color:var(--indigo);text-decoration:none;font-size:12px">${c.email}</a>`
+          : '<span style="color:var(--txt-3)">-</span>'}
+      </td>
+      <td class="hide-mobile">
+        ${c.industry ? `<span class="badge badge-gray">${c.industry}</span>` : '-'}
+      </td>
+      <td class="hide-mobile memo-cell">${c.memo || ''}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-outline btn-sm" onclick='openEdit(${JSON.stringify(c).replace(/'/g,"&#39;")})'>수정</button>
+        <button class="btn btn-danger btn-sm" onclick="confirmDelete(${c.id},'${c.company_name.replace(/'/g,"\\'")}')">삭제</button>
+      </td>
+    </tr>
+  `).join('')
+}
+
+// ── 모달 ──────────────────────────────────────────────
+function openModal() {
+  document.getElementById('modalTitle').textContent = '고객사 추가'
+  document.getElementById('editId').value = ''
+  ;['company_name','contact_name','phone','email','memo'].forEach(f => {
+    const el = document.getElementById('f_'+f)
+    if (el) el.value = ''
+  })
+  document.getElementById('f_industry').value = ''
+  document.getElementById('modal').classList.add('open')
+}
+
+function openEdit(c) {
+  document.getElementById('modalTitle').textContent = '고객사 수정'
+  document.getElementById('editId').value = c.id
+  document.getElementById('f_company_name').value = c.company_name || ''
+  document.getElementById('f_contact_name').value = c.contact_name || ''
+  document.getElementById('f_phone').value = c.phone || ''
+  document.getElementById('f_email').value = c.email || ''
+  document.getElementById('f_industry').value = c.industry || ''
+  document.getElementById('f_memo').value = c.memo || ''
+  document.getElementById('modal').classList.add('open')
+}
+
+function closeModal() { document.getElementById('modal').classList.remove('open') }
+
+async function save() {
+  const id = document.getElementById('editId').value
+  const row = {
+    company_name: document.getElementById('f_company_name').value.trim(),
+    contact_name: document.getElementById('f_contact_name').value.trim() || null,
+    phone:        document.getElementById('f_phone').value.replace(/[-\s]/g,'') || null,
+    email:        document.getElementById('f_email').value.trim().toLowerCase() || null,
+    industry:     document.getElementById('f_industry').value || null,
+    memo:         document.getElementById('f_memo').value.trim() || null,
+  }
+  if (!row.company_name) { showToast('회사명을 입력하세요.', 'warning'); return }
+
+  const { error } = id
+    ? await sb.from('customers').update(row).eq('id', id)
+    : await sb.from('customers').insert(row)
+
+  if (error) { showToast('저장 실패: ' + error.message, 'danger'); return }
+  closeModal()
+  showToast(id ? '수정되었습니다.' : '추가되었습니다.')
+  load()
+}
+
+function confirmDelete(id, name) {
+  deleteId = id
+  document.getElementById('deleteTarget').textContent = name
+  document.getElementById('deleteModal').classList.add('open')
+}
+function closeDeleteModal() { document.getElementById('deleteModal').classList.remove('open') }
+
+async function doDelete() {
+  const { error } = await sb.from('customers').delete().eq('id', deleteId)
+  if (error) { showToast('삭제 실패', 'danger'); return }
+  closeDeleteModal()
+  showToast('삭제되었습니다.')
+  load()
+}
+
+// ── 엑셀 내보내기 ──────────────────────────────────────
+async function exportExcel() {
+  const { data } = await sb.from('customers').select('*').order('company_name')
+  const rows = (data||[]).map(c => ({
+    '회사명': c.company_name, '담당자': c.contact_name||'',
+    '연락처': c.phone||'', '이메일': c.email||'', '산업군': c.industry||'', '비고': c.memo||''
+  }))
+  const ws = XLSX.utils.json_to_sheet(rows)
+  ws['!cols'] = [{wch:20},{wch:12},{wch:14},{wch:28},{wch:18},{wch:30}]
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, '고객사목록')
+  XLSX.writeFile(wb, '고객사목록.xlsx')
+}
+
+// ── 엑셀 가져오기 ──────────────────────────────────────
+async function importExcel(input) {
+  const file = input.files[0]
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = async (e) => {
+    const wb = XLSX.read(e.target.result, { type:'binary' })
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]])
+    const inserts = rows
+      .filter(r => r['회사명'])
+      .map(r => ({
+        company_name: String(r['회사명']||'').trim(),
+        contact_name: String(r['담당자']||'').trim() || null,
+        phone:        String(r['연락처']||'').replace(/[-\s]/g,'') || null,
+        email:        String(r['이메일']||'').trim().toLowerCase() || null,
+        industry:     String(r['산업군']||'').trim() || null,
+        memo:         String(r['비고']||'').trim() || null,
+      }))
+    if (!inserts.length) { showToast('가져올 데이터가 없습니다.', 'warning'); return }
+    const { error } = await sb.from('customers').insert(inserts)
+    if (error) { showToast('가져오기 실패: ' + error.message, 'danger'); return }
+    showToast(`${inserts.length}건 가져오기 완료!`)
+    input.value = ''
+    load()
+  }
+  reader.readAsBinaryString(file)
+}
+</script>
+</body>
+</html>

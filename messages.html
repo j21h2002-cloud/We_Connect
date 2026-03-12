@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>메시지 관리</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .msg-card {
+      background: var(--bg-card);
+      border: 1px solid var(--bdr-s);
+      border-radius: var(--r12);
+      padding: 18px 20px;
+      box-shadow: var(--sh-sm);
+      transition: box-shadow var(--t), transform var(--t);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .msg-card:hover { box-shadow: var(--sh-md); transform: translateY(-2px); }
+    .msg-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 14px;
+    }
+    .msg-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--txt-1);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .msg-code {
+      font-size: 11px;
+      font-weight: 600;
+      background: var(--bg-sub);
+      color: var(--txt-3);
+      border: 1px solid var(--bdr);
+      padding: 2px 7px;
+      border-radius: var(--round);
+      font-family: monospace;
+    }
+    .msg-content {
+      font-size: 13px;
+      color: var(--txt-2);
+      line-height: 1.6;
+      background: var(--bg-sub);
+      border-radius: var(--r8);
+      padding: 10px 12px;
+      min-height: 60px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .msg-img-preview {
+      width: 100%;
+      max-height: 160px;
+      object-fit: cover;
+      border-radius: var(--r8);
+      border: 1px solid var(--bdr-s);
+    }
+    .msg-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+    .msg-date { font-size: 11.5px; color: var(--txt-3); }
+
+    /* 이미지 업로드 */
+    .upload-area {
+      border: 2px dashed var(--bdr);
+      border-radius: var(--r8);
+      padding: 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color var(--t), background var(--t);
+      position: relative;
+    }
+    .upload-area:hover { border-color: var(--indigo); background: #f5f3ff; }
+    .upload-area input[type=file] {
+      position: absolute; inset: 0; opacity: 0;
+      cursor: pointer; width: 100%; height: 100%;
+      border: none; border-radius: 0;
+    }
+    .upload-area .upload-label {
+      font-size: 13px;
+      color: var(--txt-3);
+      pointer-events: none;
+    }
+    .upload-area .upload-label strong { color: var(--indigo); }
+    #imgPreviewWrap { margin-top: 10px; display: none; }
+    #imgPreviewWrap img {
+      max-height: 160px; border-radius: var(--r8);
+      border: 1px solid var(--bdr-s); max-width: 100%;
+    }
+    .img-remove {
+      display: block; margin-top: 6px;
+      font-size: 12px; color: var(--red); cursor: pointer;
+      background: none; border: none; font-family: inherit;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="/index.html" class="brand">
+    <div class="brand-icon">💬</div>
+    <span class="brand-name">카카오 알림톡</span>
+  </a>
+  <div class="spacer"></div>
+  <a href="/index.html">발송</a>
+  <a href="/customers.html" data-role="admin">고객사</a>
+  <a href="/messages.html" style="color:#fff;font-weight:700">메시지</a>
+  <a href="/history.html" data-role="admin">이력</a>
+  <a href="/settings.html" data-role="admin">⚙️</a>
+  <span id="navUserName" class="user-name"></span>
+  <button class="btn-logout" onclick="logout()">로그아웃</button>
+</nav>
+
+<div class="container">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:8px">
+    <h2 style="font-size:18px;font-weight:800;letter-spacing:-0.4px">📝 메시지 관리</h2>
+    <button class="btn btn-kakao" onclick="openAdd()">+ 메시지 추가</button>
+  </div>
+
+  <div id="msgGrid" class="msg-grid">
+    <div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--txt-3)">
+      로딩 중...
+    </div>
+  </div>
+</div>
+
+<!-- 추가/수정 모달 -->
+<div class="modal-overlay" id="modal">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <span id="modalTitle">메시지 추가</span>
+      <button class="btn-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editId">
+      <input type="hidden" id="f_channel" value="kakao">
+
+      <!-- 채널 선택 -->
+      <div class="form-group">
+        <label>발송 채널 <span style="color:var(--red)">*</span></label>
+        <div class="ch-selector">
+          <button type="button" class="ch-btn active" data-ch="kakao" onclick="switchMsgCh('kakao')">💬 카카오 알림톡</button>
+          <button type="button" class="ch-btn" data-ch="sms" onclick="switchMsgCh('sms')">📱 문자 (SMS)</button>
+          <button type="button" class="ch-btn" data-ch="email" onclick="switchMsgCh('email')">📧 이메일</button>
+        </div>
+      </div>
+
+      <!-- 공통: 메시지 제목 -->
+      <div class="form-group">
+        <label id="titleLabel">메시지 제목 <span style="color:var(--red)">*</span></label>
+        <input type="text" id="f_title" placeholder="예: 계약 갱신 안내">
+      </div>
+
+      <!-- 카카오 전용 -->
+      <div id="ch-kakao">
+        <div class="form-group">
+          <label>템플릿 코드 <small style="color:var(--txt-3);font-weight:normal">(카카오 승인 코드)</small></label>
+          <input type="text" id="f_code" placeholder="예: CONTRACT_RENEWAL" style="font-family:monospace">
+        </div>
+        <div class="form-group">
+          <label>메시지 내용</label>
+          <textarea id="f_content" rows="4" placeholder="발송할 알림톡 내용을 입력하세요"></textarea>
+        </div>
+        <div class="form-group">
+          <label>이미지 첨부 <small style="color:var(--txt-3);font-weight:normal">(선택)</small></label>
+          <div class="upload-area" id="uploadArea">
+            <input type="file" id="f_image" accept="image/*" onchange="previewImage(this)">
+            <div class="upload-label">
+              <div style="font-size:28px;margin-bottom:6px">🖼️</div>
+              <div><strong>클릭</strong>하거나 이미지를 드래그하세요</div>
+              <div style="font-size:12px;margin-top:4px">JPG, PNG, GIF · 최대 5MB</div>
+            </div>
+          </div>
+          <div id="imgPreviewWrap">
+            <img id="imgPreview" src="" alt="미리보기">
+            <button class="img-remove" onclick="removeImage()">✕ 이미지 제거</button>
+          </div>
+          <input type="hidden" id="f_current_image">
+        </div>
+      </div>
+
+      <!-- 문자(SMS) 전용 -->
+      <div id="ch-sms" style="display:none">
+        <div class="form-group" style="margin-bottom:4px">
+          <label>문자 내용 <span style="color:var(--red)">*</span></label>
+          <textarea id="f_sms_content" rows="5" placeholder="발송할 문자 내용을 입력하세요&#10;&#10;90자 이하: 단문(SMS) 요금&#10;90자 초과: 장문(LMS) 요금"></textarea>
+        </div>
+        <div id="smsModalCount" style="text-align:right;font-size:11.5px;color:var(--txt-3);margin-bottom:12px">0자 (단문 SMS)</div>
+        <div style="background:var(--amber-bg);border:1px solid #fde68a;border-radius:var(--r8);padding:10px 12px;font-size:12px;color:var(--amber)">
+          💡 수신자 이름 삽입: <code style="background:rgba(0,0,0,.06);padding:1px 5px;border-radius:3px">#{이름}</code> 형식 사용 가능
+        </div>
+      </div>
+
+      <!-- 이메일 전용 -->
+      <div id="ch-email" style="display:none">
+        <div class="form-group">
+          <label>이메일 본문 <span style="color:var(--red)">*</span></label>
+          <textarea id="f_email_body" rows="7" placeholder="발송할 이메일 본문을 입력하세요&#10;&#10;줄바꿈은 이메일에서 그대로 유지됩니다."></textarea>
+        </div>
+        <div style="background:var(--blue-bg);border:1px solid var(--blue-bdr);border-radius:var(--r8);padding:10px 12px;font-size:12px;color:var(--blue)">
+          💡 제목은 위 '메시지 제목'이 이메일 제목으로 사용됩니다.
+        </div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">취소</button>
+      <button class="btn btn-kakao" id="saveBtn" onclick="save()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 삭제 확인 모달 -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal" style="max-width:340px">
+    <div class="modal-header">
+      <span>삭제 확인</span>
+      <button class="btn-close" onclick="closeDeleteModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <strong id="deleteTarget"></strong> 메시지를 삭제하시겠습니까?
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeDeleteModal()">취소</button>
+      <button class="btn btn-danger" onclick="doDelete()">삭제</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/config.js"></script>
+<script>
+let deleteId = null
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const user = await requireAuth()
+  if (!user) return
+  setupNavByRole(user.role)
+
+  document.getElementById('f_sms_content').addEventListener('input', function() {
+    const len = this.value.length
+    const el  = document.getElementById('smsModalCount')
+    el.textContent = `${len}자 (${len > 90 ? '장문 LMS' : '단문 SMS'})`
+    el.style.color = len > 90 ? 'var(--red)' : 'var(--txt-3)'
+  })
+
+  load()
+})
+
+async function load() {
+  const { data, error } = await sb.from('messages').select('*').order('created_at', { ascending: false })
+  if (error) { showToast('불러오기 실패', 'danger'); return }
+  render(data || [])
+}
+
+function render(list) {
+  const grid = document.getElementById('msgGrid')
+  if (!list.length) {
+    grid.innerHTML = `
+      <div style="grid-column:1/-1" class="empty-state">
+        <span class="icon">📝</span>
+        <div>등록된 메시지가 없습니다</div>
+        <p>+ 메시지 추가 버튼을 눌러 첫 메시지를 만들어보세요</p>
+      </div>`
+    return
+  }
+
+  const chMap = {
+    kakao: { label:'💬 알림톡', bg:'var(--kakao)', color:'var(--kakao-text)' },
+    sms:   { label:'📱 문자',  bg:'#25d366',       color:'#fff' },
+    email: { label:'📧 이메일', bg:'#4285f4',       color:'#fff' },
+  }
+
+  grid.innerHTML = list.map(m => {
+    const dt = new Date(m.created_at)
+    const dateStr = `${dt.getFullYear()}.${String(dt.getMonth()+1).padStart(2,'0')}.${String(dt.getDate()).padStart(2,'0')}`
+    const ch = chMap[m.channel] || chMap.kakao
+    const bodyText = m.content || ''
+    return `
+      <div class="msg-card">
+        <div class="msg-title">
+          <span style="background:${ch.bg};color:${ch.color};font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;white-space:nowrap">${ch.label}</span>
+          <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.title}</span>
+          ${m.template_code ? `<span class="msg-code">${m.template_code}</span>` : ''}
+        </div>
+        ${m.image_url ? `<img class="msg-img-preview" src="${m.image_url}" alt="첨부 이미지">` : ''}
+        <div class="msg-content">${bodyText ? escHtml(bodyText) : '<span style="color:var(--txt-3);font-style:italic">내용 없음</span>'}</div>
+        <div class="msg-footer">
+          <span class="msg-date">📅 ${dateStr}</span>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-outline btn-sm" onclick='openEdit(${JSON.stringify(m).replace(/'/g,"&#39;")})'>수정</button>
+            <button class="btn btn-danger btn-sm" onclick="confirmDelete(${m.id},'${m.title.replace(/'/g,"\\'")}')">삭제</button>
+          </div>
+        </div>
+      </div>
+    `
+  }).join('')
+}
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;')
+}
+
+// ── 채널 전환 ──────────────────────────────────────────
+function switchMsgCh(ch) {
+  document.getElementById('f_channel').value = ch
+  document.querySelectorAll('.ch-btn').forEach(b => b.classList.toggle('active', b.dataset.ch === ch))
+  ;['kakao','sms','email'].forEach(c => {
+    document.getElementById('ch-'+c).style.display = c === ch ? '' : 'none'
+  })
+  // 저장 버튼 색상
+  const btn = document.getElementById('saveBtn')
+  if (ch === 'sms')   { btn.style.background='#25d366'; btn.style.color='#fff' }
+  else if (ch === 'email') { btn.style.background='#4285f4'; btn.style.color='#fff' }
+  else                { btn.style.background=''; btn.style.color='' }
+}
+
+// ── 모달 ──────────────────────────────────────────────
+function openAdd() {
+  document.getElementById('modalTitle').textContent = '메시지 추가'
+  document.getElementById('editId').value = ''
+  document.getElementById('f_title').value = ''
+  document.getElementById('f_code').value = ''
+  document.getElementById('f_content').value = ''
+  document.getElementById('f_sms_content').value = ''
+  document.getElementById('f_email_body').value = ''
+  document.getElementById('smsModalCount').textContent = '0자 (단문 SMS)'
+  document.getElementById('f_current_image').value = ''
+  document.getElementById('f_image').value = ''
+  document.getElementById('imgPreview').src = ''
+  document.getElementById('imgPreviewWrap').style.display = 'none'
+  document.getElementById('uploadArea').style.display = 'block'
+  switchMsgCh('kakao')
+  document.getElementById('modal').classList.add('open')
+}
+
+function openEdit(m) {
+  document.getElementById('modalTitle').textContent = '메시지 수정'
+  document.getElementById('editId').value = m.id
+  document.getElementById('f_title').value = m.title || ''
+  document.getElementById('f_code').value = m.template_code || ''
+  document.getElementById('f_current_image').value = m.image_url || ''
+  document.getElementById('f_image').value = ''
+
+  const ch = m.channel || 'kakao'
+  if (ch === 'sms') {
+    document.getElementById('f_sms_content').value = m.content || ''
+    document.getElementById('smsModalCount').textContent = (m.content||'').length + '자'
+  } else if (ch === 'email') {
+    document.getElementById('f_email_body').value = m.content || ''
+    document.getElementById('f_content').value = ''
+  } else {
+    document.getElementById('f_content').value = m.content || ''
+    if (m.image_url) {
+      document.getElementById('imgPreview').src = m.image_url
+      document.getElementById('imgPreviewWrap').style.display = 'block'
+      document.getElementById('uploadArea').style.display = 'none'
+    } else {
+      document.getElementById('imgPreviewWrap').style.display = 'none'
+      document.getElementById('uploadArea').style.display = 'block'
+    }
+  }
+  switchMsgCh(ch)
+  document.getElementById('modal').classList.add('open')
+}
+
+function closeModal() { document.getElementById('modal').classList.remove('open') }
+
+// ── 이미지 미리보기 ────────────────────────────────────
+function previewImage(input) {
+  const file = input.files[0]
+  if (!file) return
+  if (file.size > 5 * 1024 * 1024) {
+    showToast('이미지 크기는 5MB 이하여야 합니다.', 'warning'); return
+  }
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    document.getElementById('imgPreview').src = e.target.result
+    document.getElementById('imgPreviewWrap').style.display = 'block'
+    document.getElementById('uploadArea').style.display = 'none'
+  }
+  reader.readAsDataURL(file)
+}
+
+function removeImage() {
+  document.getElementById('f_image').value = ''
+  document.getElementById('f_current_image').value = ''
+  document.getElementById('imgPreview').src = ''
+  document.getElementById('imgPreviewWrap').style.display = 'none'
+  document.getElementById('uploadArea').style.display = 'block'
+}
+
+// ── 저장 ──────────────────────────────────────────────
+async function save() {
+  const id      = document.getElementById('editId').value
+  const title   = document.getElementById('f_title').value.trim()
+  const channel = document.getElementById('f_channel').value || 'kakao'
+
+  if (!title) { showToast('메시지 제목을 입력하세요.', 'warning'); return }
+
+  let row = { title, channel }
+
+  if (channel === 'kakao') {
+    const code      = document.getElementById('f_code').value.trim()
+    const content   = document.getElementById('f_content').value.trim()
+    const imageFile = document.getElementById('f_image').files[0]
+    let image_url   = document.getElementById('f_current_image').value || ''
+
+    if (imageFile) {
+      if (IS_DEMO) {
+        image_url = await new Promise(resolve => {
+          const r = new FileReader(); r.onload = e => resolve(e.target.result); r.readAsDataURL(imageFile)
+        })
+      } else {
+        const fileName = `${Date.now()}_${imageFile.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
+        const { error: upErr } = await sb.storage.from('message-images').upload(fileName, imageFile, { upsert: true })
+        if (!upErr) {
+          const { data: urlData } = sb.storage.from('message-images').getPublicUrl(fileName)
+          image_url = urlData?.publicUrl || ''
+        }
+      }
+    }
+    row = { ...row, template_code: code || null, content: content || null, image_url: image_url || null }
+
+  } else if (channel === 'sms') {
+    const content = document.getElementById('f_sms_content').value.trim()
+    if (!content) { showToast('문자 내용을 입력하세요.', 'warning'); return }
+    row = { ...row, content, template_code: null, image_url: null }
+
+  } else if (channel === 'email') {
+    const content = document.getElementById('f_email_body').value.trim()
+    if (!content) { showToast('이메일 본문을 입력하세요.', 'warning'); return }
+    row = { ...row, content, template_code: null, image_url: null }
+  }
+
+  const { error } = id
+    ? await sb.from('messages').update(row).eq('id', id)
+    : await sb.from('messages').insert(row)
+
+  if (error) { showToast('저장 실패: ' + error.message, 'danger'); return }
+  closeModal()
+  showToast(id ? '수정되었습니다.' : '추가되었습니다.')
+  load()
+}
+
+// ── 삭제 ──────────────────────────────────────────────
+function confirmDelete(id, title) {
+  deleteId = id
+  document.getElementById('deleteTarget').textContent = `"${title}"`
+  document.getElementById('deleteModal').classList.add('open')
+}
+function closeDeleteModal() { document.getElementById('deleteModal').classList.remove('open') }
+
+async function doDelete() {
+  const { error } = await sb.from('messages').delete().eq('id', deleteId)
+  if (error) { showToast('삭제 실패', 'danger'); return }
+  closeDeleteModal()
+  showToast('삭제되었습니다.')
+  load()
+}
+</script>
+</body>
+</html>
