@@ -2,7 +2,11 @@
   functions = "netlify/functions"
   publish   = "."
 
-# SPA처럼 모든 경로를 index.html이 아닌 각 파일로 서빙
+[[redirects]]
+  from = "/"
+  to   = "/login.html"
+  status = 301
+
 [[headers]]
   for = "/*"
   [headers.values]
