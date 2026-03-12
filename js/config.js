@@ -2,8 +2,8 @@
  * Supabase 설정
  * 실제 배포 시: Supabase > Project Settings > API 에서 복사해서 아래 값 변경
  */
-const SUPABASE_URL  = 'https://YOUR_PROJECT_ID.supabase.co'
-const SUPABASE_ANON = 'YOUR_ANON_KEY'
+const SUPABASE_URL  = 'https://dhjysormcgoydixgkzlq.supabase.co'
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRoanlzb3JtY2dveWRpeGdremxxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNzc4MTUsImV4cCI6MjA4ODg1MzgxNX0.18hFkxpO7_kQcx3qQ9Q36jTkYdihd5QJTxnx_LqEjOY'
 
 // 내부 사용자 이메일 도메인 (Supabase Auth용)
 const USER_DOMAIN = '@kakao.system'
