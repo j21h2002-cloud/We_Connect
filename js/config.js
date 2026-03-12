@@ -6,7 +6,7 @@ const SUPABASE_URL  = 'https://dhjysormcgoydixgkzlq.supabase.co'
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRoanlzb3JtY2dveWRpeGdremxxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNzc4MTUsImV4cCI6MjA4ODg1MzgxNX0.18hFkxpO7_kQcx3qQ9Q36jTkYdihd5QJTxnx_LqEjOY'
 
 // 내부 사용자 이메일 도메인 (Supabase Auth용)
-const USER_DOMAIN = '@kakao.system'
+const USER_DOMAIN = '@weconnect.system'
 
 // ─── 데모 모드 감지 ────────────────────────────────────
 const IS_DEMO = SUPABASE_URL.includes('YOUR_PROJECT')
