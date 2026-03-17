@@ -23,9 +23,13 @@ CREATE TABLE IF NOT EXISTS messages (
   channel       TEXT DEFAULT 'kakao',   -- 'kakao' | 'sms' | 'email'
   template_code TEXT,
   content       TEXT,
+  link          TEXT,                   -- 홍보 링크 URL
   image_url     TEXT,
   created_at    TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- 기존 테이블에 link 컬럼 추가 (이미 테이블이 있는 경우)
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS link TEXT;
 
 CREATE TABLE IF NOT EXISTS send_history (
   id             BIGSERIAL PRIMARY KEY,
@@ -135,3 +139,16 @@ CREATE POLICY "인증 사용자 프로필 수정" ON user_profiles
 --   message-images → "authenticated" 역할에 INSERT/DELETE 허용
 --                    "public" (모두)에 SELECT 허용
 -- ============================================
+
+
+ Supabase 대시보드에서 계정 생성:
+
+  1. Supabase → Authentication → Users → Add user
+  2. 이메일: admin@kakao.system / 비밀번호: 설정
+  3. SQL Editor에서 아래 실행:
+
+  INSERT INTO user_profiles (id, username, name, role)
+  SELECT id, 'admin', '관리자', 'admin'
+  FROM auth.users
+  WHERE email = 'admin@kakao.system';
+

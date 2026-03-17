@@ -3,16 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>알림톡 발송</title>
+  <title>메일 발송</title>
   <link rel="stylesheet" href="/css/style.css">
   <style>
-    /* 전체 레이아웃 */
     #layout { align-items: start; }
 
-    /* 수신자 검색 카드 — 화면 높이에 맞게 고정 */
     .recv-card {
       position: sticky;
-      top: 72px;           /* navbar 높이(56px) + 여유 */
+      top: 72px;
       display: flex;
       flex-direction: column;
     }
@@ -26,13 +24,11 @@
       flex: 1;
       overflow-x: auto;
       overflow-y: auto;
-      min-height: 0;       /* flex shrink 허용 */
+      min-height: 0;
     }
 
-    /* 수신자 테이블 - 셀 내용 줄바꿈 방지 */
     #customerTable td,
     #customerTable th { white-space: nowrap; }
-    /* 이메일 컬럼만 말줄임 허용 */
     #customerTable td.email-cell {
       max-width: 140px;
       overflow: hidden;
@@ -40,35 +36,94 @@
       white-space: nowrap;
     }
 
-    .send-tabs { display:flex; gap:4px; margin-bottom:16px; }
-    .send-tab {
-      flex:1; padding:9px 8px; font-size:13px; font-weight:600; color:var(--txt-3);
-      border:1.5px solid var(--bdr); background:var(--bg-sub); cursor:pointer;
-      border-radius:var(--r8); transition:all .15s; text-align:center;
-    }
-    .send-tab:hover:not(.active) { color:var(--txt-1); background:#fff; }
-    .send-tab.active[data-tab="kakao"] { background:var(--kakao); color:var(--kakao-text); border-color:var(--kakao-hover); }
-    .send-tab.active[data-tab="sms"]   { background:#25d366; color:#fff; border-color:#1da851; }
-    .send-tab.active[data-tab="email"] { background:#4285f4; color:#fff; border-color:#2b6fe0; }
-    .msg-preview-box {
-      background: var(--bg-sub);
-      border: 1px solid var(--bdr);
-      border-radius: var(--r8);
-      padding: 12px 14px;
-      font-size: 13px;
+    .link-row {
+      font-size: 13.5px;
       color: var(--txt-2);
-      line-height: 1.65;
-      white-space: pre-wrap;
-      word-break: break-word;
+      margin-bottom: 14px;
+      display: none;
+    }
+    .link-row a {
+      color: #4285f4;
+      text-decoration: underline;
+      word-break: break-all;
+    }
+
+    .bottom-btns {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 8px;
       margin-top: 4px;
     }
-    .msg-preview-img {
-      width: 100%;
-      max-height: 140px;
-      object-fit: cover;
+    .btn-preview {
+      background: #fff;
+      border: 1.5px solid var(--bdr);
+      color: var(--txt-2);
+      font-weight: 600;
+      font-size: 14px;
+      font-family: inherit;
+      padding: 13px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .btn-preview:hover { background: var(--bg-sub); }
+
+    /* 미리보기 모달 */
+    .preview-modal-wrap {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.45);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 9999;
+      display: none;
+    }
+    .preview-modal-wrap.open { display: flex; }
+    .preview-modal {
+      background: #fff;
+      border-radius: 12px;
+      width: 520px;
+      max-width: 95vw;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 8px 40px rgba(0,0,0,.18);
+    }
+    .preview-modal-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--bdr-s);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-weight: 700;
+      font-size: 15px;
+    }
+    .preview-modal-body { padding: 20px; }
+    .preview-field-label {
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--txt-3);
+      margin-bottom: 4px;
+    }
+    .preview-field-value {
+      font-size: 14px;
+      color: var(--txt-1);
+      margin-bottom: 16px;
+      font-weight: 600;
+    }
+    .preview-body-text {
+      font-size: 13.5px;
+      color: var(--txt-2);
+      line-height: 1.75;
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: var(--bg-sub);
       border-radius: var(--r8);
-      border: 1px solid var(--bdr-s);
-      margin-top: 8px;
+      padding: 14px 16px;
+      margin-bottom: 16px;
+    }
+    .preview-link {
+      font-size: 13px;
+      color: #4285f4;
+      text-decoration: underline;
+      word-break: break-all;
     }
   </style>
 </head>
@@ -76,8 +131,7 @@
 
 <nav class="navbar">
   <a href="/index.html" class="brand">
-    <div class="brand-icon">💬</div>
-    <span class="brand-name">카카오 알림톡</span>
+    <span class="brand-name">We-Connect</span>
   </a>
   <div class="spacer"></div>
   <a href="/index.html" style="color:#fff;font-weight:700">발송</a>
@@ -135,113 +189,53 @@
     <!-- 오른쪽: 발송 패널 -->
     <div>
       <div class="card">
-        <div class="card-header">📤 발송 설정</div>
+        <div class="card-header">📧 이메일 발송</div>
         <div class="card-body">
 
-          <!-- 발송 방식 탭 -->
-          <div class="send-tabs">
-            <button class="send-tab active" id="tab-kakao" data-tab="kakao" onclick="switchTab('kakao')">💬 알림톡</button>
-            <button class="send-tab" id="tab-sms" data-tab="sms" onclick="switchTab('sms')">📱 문자</button>
-            <button class="send-tab" id="tab-email" data-tab="email" onclick="switchTab('email')">📧 이메일</button>
+          <!-- 발신자 이메일 표시 -->
+          <div style="font-size:12.5px;background:var(--bg-sub);border-radius:var(--r8);padding:8px 12px;margin-bottom:14px;color:var(--txt-2)">
+            📤 발신자: <strong id="senderEmailDisplay" style="color:var(--indigo)">-</strong>
           </div>
 
-          <!-- 알림톡 탭 -->
-          <div id="panel-kakao">
-            <div class="form-group">
-              <label>알림톡 메시지 선택 <span style="color:var(--red)">*</span></label>
-              <select id="messageSelect" onchange="onMessageChange()">
-                <option value="">-- 메시지를 선택하세요 --</option>
-              </select>
-            </div>
-            <div id="msgPreviewArea" style="display:none;margin-bottom:14px">
-              <div style="font-size:11.5px;font-weight:600;color:var(--txt-3);margin-bottom:4px">미리보기</div>
-              <div class="msg-preview-box" id="msgPreviewText"></div>
-              <img id="msgPreviewImg" class="msg-preview-img" src="" alt="첨부 이미지" style="display:none">
-            </div>
-            <div class="alert alert-info" id="receiverInfo">수신자를 선택하세요</div>
-            <button class="btn btn-kakao btn-block" onclick="sendAlimtalk()" id="sendBtn">✉️ 알림톡 발송</button>
-            <div style="text-align:center;margin-top:8px">
-              <a href="/messages.html" style="font-size:12px;color:var(--txt-3);text-decoration:none">＋ 메시지 관리하기</a>
-            </div>
+          <!-- 홍보 콘텐츠 선택 -->
+          <div class="form-group">
+            <label>홍보 콘텐츠 선택 <span style="color:var(--red)">*</span></label>
+            <select id="emailTemplateSelect" onchange="onTemplateChange()">
+              <option value="">-- 콘텐츠를 선택하세요 --</option>
+            </select>
           </div>
 
-          <!-- 문자(SMS) 탭 -->
-          <div id="panel-sms" style="display:none">
-            <div class="form-group">
-              <label>문자 템플릿 불러오기</label>
-              <select id="smsTemplateSelect" onchange="onSmsTemplateChange()">
-                <option value="">-- 저장된 템플릿 선택 (선택사항) --</option>
-              </select>
-            </div>
-            <div class="form-group" style="margin-bottom:4px">
-              <label>문자 내용 <span style="color:var(--red)">*</span></label>
-              <textarea id="smsContent" rows="5" placeholder="발송할 문자 내용을 입력하세요&#10;90자 이하: 단문(SMS) / 초과 시: 장문(LMS)" style="resize:vertical"></textarea>
-            </div>
-            <div id="smsCharCount" style="text-align:right;font-size:11px;color:var(--txt-3);margin-bottom:10px">0자</div>
-            <div class="alert alert-info" id="receiverInfoSms">수신자를 선택하세요</div>
-            <button class="btn btn-block" onclick="sendSms()" id="sendSmsBtn"
-              style="background:#25d366;color:#fff;font-weight:700;border:none;padding:13px;border-radius:8px;cursor:pointer;font-size:14px;font-family:inherit">
-              📱 문자 발송
-            </button>
-            <div style="text-align:center;margin-top:8px">
-              <a href="/messages.html" style="font-size:12px;color:var(--txt-3);text-decoration:none">＋ 문자 템플릿 관리하기</a>
-            </div>
+          <!-- 링크 표시 -->
+          <div class="link-row" id="linkRow">
+            링크 : <a id="linkAnchor" href="#" target="_blank"></a>
           </div>
 
-          <!-- 이메일 탭 -->
-          <div id="panel-email" style="display:none">
-            <!-- 발신 이메일 선택 -->
-            <div class="form-group" style="margin-bottom:12px">
-              <label>발신 이메일 <small style="color:var(--txt-3);font-weight:normal">(From 주소 선택)</small></label>
-              <div style="display:flex;flex-direction:column;gap:7px;margin-top:8px">
-                <!-- 내 이메일 -->
-                <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer;font-size:13.5px">
-                  <input type="radio" name="emailFrom" value="my" id="emailFromMy" onchange="onEmailFromChange()" checked>
-                  <span>내 이메일</span>
-                  <span id="myEmailAddr" style="font-size:12px;color:var(--txt-3)">(미설정)</span>
-                </label>
-                <!-- 회사 이메일 -->
-                <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer;font-size:13.5px">
-                  <input type="radio" name="emailFrom" value="company" id="emailFromCompany" onchange="onEmailFromChange()">
-                  <span>회사 이메일</span>
-                </label>
-                <div id="companyEmailSelectWrap" style="display:none;padding-left:22px;margin-top:-2px">
-                  <select id="emailFromCompanySelect" style="width:100%;font-size:13px;padding:7px 9px;border:1px solid var(--bdr);border-radius:var(--r8);background:#fff;color:var(--txt-1)">
-                    <option value="">-- 선택 --</option>
-                  </select>
-                </div>
-                <!-- 직접 입력 -->
-                <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer;font-size:13.5px">
-                  <input type="radio" name="emailFrom" value="custom" id="emailFromCustom" onchange="onEmailFromChange()">
-                  <span>직접 입력</span>
-                </label>
-                <div id="customEmailInputWrap" style="display:none;padding-left:22px;margin-top:-2px">
-                  <input type="email" id="emailFromCustomInput" placeholder="직접 입력할 이메일 주소" style="font-size:13px;width:100%;box-sizing:border-box">
-                </div>
-              </div>
-            </div>
-            <div class="form-group">
-              <label>이메일 템플릿 불러오기</label>
-              <select id="emailTemplateSelect" onchange="onEmailTemplateChange()">
-                <option value="">-- 저장된 템플릿 선택 (선택사항) --</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>제목 <span style="color:var(--red)">*</span></label>
-              <input type="text" id="emailSubject" placeholder="이메일 제목을 입력하세요">
-            </div>
-            <div class="form-group">
-              <label>내용 <span style="color:var(--red)">*</span></label>
-              <textarea id="emailBody" rows="5" placeholder="발송할 이메일 내용을 입력하세요" style="resize:vertical"></textarea>
-            </div>
-            <div class="alert alert-info" id="receiverInfoEmail">수신자를 선택하세요</div>
+          <!-- 제목 -->
+          <div class="form-group">
+            <label>제목 <span style="color:var(--red)">*</span></label>
+            <input type="text" id="emailSubject" placeholder="이메일 제목을 입력하세요">
+          </div>
+
+          <!-- 내용 -->
+          <div class="form-group">
+            <label>내용 <span style="color:var(--red)">*</span></label>
+            <textarea id="emailBody" rows="6" placeholder="발송할 이메일 내용을 입력하세요" style="resize:vertical"></textarea>
+          </div>
+
+          <!-- 수신자 정보 -->
+          <div class="alert alert-info" id="receiverInfoEmail">수신자를 선택하세요</div>
+
+          <!-- 버튼 -->
+          <div class="bottom-btns">
+            <button class="btn-preview" onclick="openPreview()">👁 미리보기</button>
             <button class="btn btn-block" onclick="sendEmail()" id="sendEmailBtn"
-              style="background:#4285f4;color:#fff;font-weight:700;border:none;padding:13px;border-radius:8px;cursor:pointer;font-size:14px;font-family:inherit">
+              style="background:#4285f4;color:#fff;font-weight:700;border:none;padding:13px;border-radius:8px;cursor:pointer;font-size:14px;font-family:inherit;margin-top:0">
               📧 이메일 발송
             </button>
-            <div style="text-align:center;margin-top:8px">
-              <a href="/messages.html" style="font-size:12px;color:var(--txt-3);text-decoration:none">＋ 이메일 템플릿 관리하기</a>
-            </div>
+          </div>
+
+          <div style="text-align:center;margin-top:10px">
+            <a href="/messages.html" style="font-size:12px;color:var(--txt-3);text-decoration:none">＋ 콘텐츠 관리하기</a>
           </div>
 
         </div>
@@ -257,6 +251,26 @@
   </div>
 </div>
 
+<!-- 미리보기 모달 -->
+<div class="preview-modal-wrap" id="previewModal">
+  <div class="preview-modal">
+    <div class="preview-modal-header">
+      📧 이메일 미리보기
+      <button class="btn-close" onclick="closePreview()">×</button>
+    </div>
+    <div class="preview-modal-body">
+      <div class="preview-field-label">제목</div>
+      <div class="preview-field-value" id="previewSubject"></div>
+      <div class="preview-field-label">내용</div>
+      <div class="preview-body-text" id="previewBody"></div>
+      <div id="previewLinkWrap" style="display:none">
+        <div class="preview-field-label">링크</div>
+        <a class="preview-link" id="previewLink" href="#" target="_blank"></a>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/js/config.js"></script>
 <script>
@@ -264,116 +278,91 @@ let selectedIds  = new Set()
 let allCustomers = []
 let allMessages  = []
 
-// ── 초기화 ───────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
   const user = await requireAuth()
   if (!user) return
   setupNavByRole(user.role)
 
+  // 발신자 이메일 표시
+  const senderEl = document.getElementById('senderEmailDisplay')
+  if (senderEl) senderEl.textContent = user.email || '(이메일 미등록 — ⚙️ 설정에서 추가하세요)'
+
   document.getElementById('searchInput').addEventListener('keypress', e => {
     if (e.key === 'Enter') searchCustomers()
   })
 
-  document.getElementById('smsContent').addEventListener('input', function() {
-    const len = this.value.length
-    const el  = document.getElementById('smsCharCount')
-    el.textContent = `${len}자${len > 90 ? ' (장문 MMS)' : ' (단문 SMS)'}`
-    el.style.color = len > 90 ? 'var(--red)' : 'var(--txt-3)'
-  })
-
   loadMessages()
   loadAll()
-  loadEmailSettings()
 })
-
 
 // ── 메시지 로드 ──────────────────────────────────────
 async function loadMessages() {
   const { data } = await sb.from('messages').select('*').order('title')
   allMessages = data || []
-  renderMessageSelects()
-}
-
-function renderMessageSelects() {
-  // 카카오 알림톡
-  const kakaoList = allMessages.filter(m => !m.channel || m.channel === 'kakao')
-  const sel = document.getElementById('messageSelect')
-  sel.innerHTML = '<option value="">-- 메시지를 선택하세요 --</option>'
-  kakaoList.forEach(m => {
+  const emailList = allMessages.filter(m => m.channel === 'email')
+  const sel = document.getElementById('emailTemplateSelect')
+  sel.innerHTML = '<option value="">-- 콘텐츠를 선택하세요 --</option>'
+  emailList.forEach(m => {
     const opt = document.createElement('option')
-    opt.value = m.template_code || m.id
-    opt.dataset.content  = m.content  || ''
-    opt.dataset.imageUrl = m.image_url || ''
-    opt.dataset.msgId    = m.id
+    opt.value = m.id
+    opt.dataset.title   = m.title   || ''
+    opt.dataset.content = m.content || ''
+    opt.dataset.link    = m.link    || ''
     opt.textContent = m.title
     sel.appendChild(opt)
   })
-
-  // SMS 템플릿
-  const smsList = allMessages.filter(m => m.channel === 'sms')
-  const smsSel  = document.getElementById('smsTemplateSelect')
-  smsSel.innerHTML = '<option value="">-- 저장된 템플릿 선택 (선택사항) --</option>'
-  smsList.forEach(m => {
-    const opt = document.createElement('option')
-    opt.value   = m.id
-    opt.dataset.content = m.content || ''
-    opt.textContent = m.title
-    smsSel.appendChild(opt)
-  })
-
-  // 이메일 템플릿
-  const emailList = allMessages.filter(m => m.channel === 'email')
-  const emailSel  = document.getElementById('emailTemplateSelect')
-  emailSel.innerHTML = '<option value="">-- 저장된 템플릿 선택 (선택사항) --</option>'
-  emailList.forEach(m => {
-    const opt = document.createElement('option')
-    opt.value   = m.id
-    opt.dataset.subject = m.title   || ''
-    opt.dataset.body    = m.content || ''
-    opt.textContent = m.title
-    emailSel.appendChild(opt)
-  })
 }
 
-function onSmsTemplateChange() {
-  const opt = document.getElementById('smsTemplateSelect').selectedOptions[0]
-  if (opt?.value) {
-    document.getElementById('smsContent').value = opt.dataset.content || ''
-    document.getElementById('smsContent').dispatchEvent(new Event('input'))
-  }
-}
-
-function onEmailTemplateChange() {
+function onTemplateChange() {
   const opt = document.getElementById('emailTemplateSelect').selectedOptions[0]
-  if (opt?.value) {
-    document.getElementById('emailSubject').value = opt.dataset.subject || ''
-    document.getElementById('emailBody').value    = opt.dataset.body    || ''
-  }
-}
-
-function onMessageChange() {
-  const opt = document.getElementById('messageSelect').selectedOptions[0]
-  const previewArea = document.getElementById('msgPreviewArea')
-  const previewText = document.getElementById('msgPreviewText')
-  const previewImg  = document.getElementById('msgPreviewImg')
-
   if (!opt?.value) {
-    previewArea.style.display = 'none'
+    document.getElementById('linkRow').style.display = 'none'
+    document.getElementById('emailSubject').value = ''
+    document.getElementById('emailBody').value = ''
     return
   }
 
-  const content  = opt.dataset.content  || ''
-  const imageUrl = opt.dataset.imageUrl || ''
+  // 제목·내용 자동 채움
+  document.getElementById('emailSubject').value = opt.dataset.title   || ''
+  document.getElementById('emailBody').value    = opt.dataset.content || ''
 
-  previewText.textContent = content || '(내용 없음)'
-  previewArea.style.display = 'block'
-
-  if (imageUrl) {
-    previewImg.src = imageUrl
-    previewImg.style.display = 'block'
+  // 링크 표시
+  const link = opt.dataset.link
+  const linkRow = document.getElementById('linkRow')
+  if (link) {
+    document.getElementById('linkAnchor').href        = link
+    document.getElementById('linkAnchor').textContent = link
+    linkRow.style.display = 'block'
   } else {
-    previewImg.style.display = 'none'
+    linkRow.style.display = 'none'
   }
+}
+
+// ── 미리보기 ──────────────────────────────────────────
+function openPreview() {
+  const subject = document.getElementById('emailSubject').value.trim()
+  const body    = document.getElementById('emailBody').value.trim()
+  const opt     = document.getElementById('emailTemplateSelect').selectedOptions[0]
+  const link    = opt?.dataset.link || ''
+
+  if (!subject && !body) { showToast('제목 또는 내용을 입력하세요.', 'warning'); return }
+
+  document.getElementById('previewSubject').textContent = subject || '(제목 없음)'
+  document.getElementById('previewBody').textContent    = body    || '(내용 없음)'
+
+  const linkWrap = document.getElementById('previewLinkWrap')
+  if (link) {
+    document.getElementById('previewLink').href        = link
+    document.getElementById('previewLink').textContent = link
+    linkWrap.style.display = 'block'
+  } else {
+    linkWrap.style.display = 'none'
+  }
+
+  document.getElementById('previewModal').classList.add('open')
+}
+function closePreview() {
+  document.getElementById('previewModal').classList.remove('open')
 }
 
 // ── 고객사 검색 ──────────────────────────────────────
@@ -451,118 +440,18 @@ function updateCount() {
   const n = selectedIds.size
   document.getElementById('selectedBadge').textContent = `${n}명 선택`
   const msg = n > 0 ? `👥 ${n}명에게 발송 예정` : '수신자를 선택하세요'
-  document.getElementById('receiverInfo').textContent = msg
-  document.getElementById('receiverInfoSms').textContent = msg
   document.getElementById('receiverInfoEmail').textContent = msg
-}
-
-// ── 탭 전환 ───────────────────────────────────────────
-function switchTab(tab) {
-  ;['kakao','sms','email'].forEach(t => {
-    const btn = document.getElementById('tab-'+t)
-    btn.classList.toggle('active', t === tab)
-    document.getElementById('panel-'+t).style.display = t === tab ? '' : 'none'
-  })
-  // 발송 결과 카드 숨김
-  document.getElementById('resultCard').style.display = 'none'
-}
-
-// ── SMS 발송 ──────────────────────────────────────────
-async function sendSms() {
-  const content = document.getElementById('smsContent').value.trim()
-  if (!content) { showToast('문자 내용을 입력하세요.', 'warning'); return }
-  if (selectedIds.size === 0) { showToast('수신자를 선택하세요.', 'warning'); return }
-
-  const receivers = allCustomers.filter(c => selectedIds.has(c.id))
-  const noPhone = receivers.filter(c => !c.phone)
-  if (noPhone.length === receivers.length) {
-    showToast('선택한 수신자 중 연락처가 등록된 고객사가 없습니다.', 'danger'); return
-  }
-
-  const { data: cfg } = await sb.from('kakao_config').select('user_id,sender_num,app_key').single()
-  if (!IS_DEMO && !cfg?.app_key) {
-    showToast('알리고 API 키가 설정되지 않았습니다. ⚙️ 설정 메뉴를 확인하세요.', 'danger'); return
-  }
-
-  const btn = document.getElementById('sendSmsBtn')
-  btn.disabled = true
-  btn.innerHTML = '<span class="spinner"></span> 발송 중...'
-
-  try {
-    const resp = await fetch('/.netlify/functions/send-sms', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: cfg?.user_id, sender_num: cfg?.sender_num, api_key: cfg?.app_key, content, receivers })
-    })
-    const result = await resp.json()
-
-    const _me = getCurrentUser()
-    await sb.from('send_history').insert({
-      title: '[SMS] ' + content.slice(0, 20) + (content.length > 20 ? '...' : ''),
-      template_code: 'SMS',
-      customer_count: receivers.length,
-      success_count:  result.successCount || 0,
-      fail_count:     result.failCount || 0,
-      recipients:     result.results || [],
-      sent_by:        _me?.name || _me?.username || '-'
-    })
-
-    showResultCard(result)
-    showToast(result.message, result.success ? 'success' : 'danger')
-  } catch (e) {
-    showToast('오류: ' + e.message, 'danger')
-  } finally {
-    btn.disabled = false
-    btn.innerHTML = '📱 문자 발송'
-  }
-}
-
-// ── 이메일 설정 로드 ──────────────────────────────────
-async function loadEmailSettings() {
-  const user = getCurrentUser()
-
-  // 내 이메일 주소 표시
-  const myAddrEl = document.getElementById('myEmailAddr')
-  if (user?.email) {
-    myAddrEl.textContent = `(${user.email})`
-    myAddrEl.style.color = 'var(--txt-2)'
-  } else {
-    myAddrEl.textContent = '(미설정)'
-    myAddrEl.style.color = 'var(--txt-3)'
-  }
-
-  // 회사 이메일 드롭다운 로드
-  const { data: ces } = await sb.from('company_emails').select('*').order('label')
-  const sel = document.getElementById('emailFromCompanySelect')
-  sel.innerHTML = '<option value="">-- 선택 --</option>'
-  ;(ces || []).forEach(ce => {
-    const opt = document.createElement('option')
-    opt.value = ce.email
-    opt.textContent = `${ce.label} (${ce.email})`
-    sel.appendChild(opt)
-  })
-
-  // 기본 선택: 내 이메일이 있으면 내 이메일, 없으면 회사 이메일
-  if (user?.email) {
-    document.getElementById('emailFromMy').checked = true
-  } else {
-    document.getElementById('emailFromCompany').checked = true
-    onEmailFromChange()
-  }
-}
-
-function onEmailFromChange() {
-  const val = document.querySelector('input[name="emailFrom"]:checked')?.value
-  document.getElementById('companyEmailSelectWrap').style.display = val === 'company' ? '' : 'none'
-  document.getElementById('customEmailInputWrap').style.display   = val === 'custom'  ? '' : 'none'
 }
 
 // ── 이메일 발송 ───────────────────────────────────────
 async function sendEmail() {
   const subject = document.getElementById('emailSubject').value.trim()
   const body    = document.getElementById('emailBody').value.trim()
-  if (!subject) { showToast('이메일 제목을 입력하세요.', 'warning'); return }
-  if (!body)    { showToast('이메일 내용을 입력하세요.', 'warning'); return }
+  const opt     = document.getElementById('emailTemplateSelect').selectedOptions[0]
+
+  if (!opt?.value) { showToast('홍보 콘텐츠를 선택하세요.', 'warning'); return }
+  if (!subject)    { showToast('이메일 제목을 입력하세요.', 'warning'); return }
+  if (!body)       { showToast('이메일 내용을 입력하세요.', 'warning'); return }
   if (selectedIds.size === 0) { showToast('수신자를 선택하세요.', 'warning'); return }
 
   const receivers = allCustomers.filter(c => selectedIds.has(c.id))
@@ -571,27 +460,13 @@ async function sendEmail() {
     showToast('선택한 수신자 중 이메일이 등록된 고객사가 없습니다.', 'danger'); return
   }
 
-  // SMTP 설정 로드 (공통)
   const { data: ec } = await sb.from('email_config').select('*').eq('id', 1).single()
   if (!IS_DEMO && (!ec?.smtp_host || !ec?.smtp_user || !ec?.smtp_pass)) {
     showToast('이메일 SMTP 설정이 없습니다. ⚙️ 설정 메뉴를 확인하세요.', 'warning'); return
   }
 
-  // 발신자 이메일 결정
-  const fromType = document.querySelector('input[name="emailFrom"]:checked')?.value || 'my'
   const currentUser = getCurrentUser()
-  let fromEmail = ''
-
-  if (fromType === 'my') {
-    fromEmail = currentUser?.email || ''
-    if (!fromEmail) { showToast('내 이메일이 설정되지 않았습니다. 관리자에게 사용자 정보 수정을 요청하세요.', 'warning'); return }
-  } else if (fromType === 'company') {
-    fromEmail = document.getElementById('emailFromCompanySelect').value
-    if (!fromEmail) { showToast('회사 이메일을 선택하세요.', 'warning'); return }
-  } else {
-    fromEmail = document.getElementById('emailFromCustomInput').value.trim()
-    if (!fromEmail) { showToast('발신 이메일 주소를 입력하세요.', 'warning'); return }
-  }
+  const fromEmail = currentUser?.email || ec?.smtp_user || ''
 
   let smtp = null
   if (ec?.smtp_host) {
@@ -656,60 +531,6 @@ function showResultCard(result) {
       <a href="/history.html" style="font-size:13px;color:var(--indigo);text-decoration:none;font-weight:500">→ 발송 이력 전체 보기</a>
     </div>
   `
-}
-
-// ── 발송 ──────────────────────────────────────────────
-async function sendAlimtalk() {
-  const sel          = document.getElementById('messageSelect')
-  const templateCode = sel.value
-  if (!templateCode) { showToast('메시지를 선택하세요.', 'warning'); return }
-  if (selectedIds.size === 0) { showToast('수신자를 선택하세요.', 'warning'); return }
-
-  const receivers = allCustomers.filter(c => selectedIds.has(c.id))
-
-  // 카카오 API 키
-  const { data: cfg } = await sb.from('kakao_config').select('app_key,sender_key').single()
-  if (!IS_DEMO && !cfg?.app_key) {
-    showToast('카카오 API 키가 설정되지 않았습니다. ⚙️ 설정 메뉴를 확인하세요.', 'danger'); return
-  }
-
-  const btn = document.getElementById('sendBtn')
-  btn.disabled = true
-  btn.innerHTML = '<span class="spinner"></span> 발송 중...'
-
-  try {
-    const resp = await fetch('/.netlify/functions/send-kakao', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        app_key:       cfg?.app_key,
-        sender_key:    cfg?.sender_key,
-        template_code: templateCode,
-        receivers,
-      })
-    })
-    const result = await resp.json()
-
-    // 이력 저장
-    const _me = getCurrentUser()
-    await sb.from('send_history').insert({
-      title:          sel.selectedOptions[0]?.text || templateCode,
-      template_code:  templateCode,
-      customer_count: receivers.length,
-      success_count:  result.successCount || 0,
-      fail_count:     result.failCount || 0,
-      recipients:     result.results || [],
-      sent_by:        _me?.name || _me?.username || '-'
-    })
-
-    showResultCard(result)
-    showToast(result.message, result.success ? 'success' : 'danger')
-  } catch (e) {
-    showToast('오류: ' + e.message, 'danger')
-  } finally {
-    btn.disabled = false
-    btn.innerHTML = '✉️ 알림톡 발송'
-  }
 }
 </script>
 </body>

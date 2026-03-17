@@ -10,8 +10,7 @@
 
 <nav class="navbar">
   <a href="/index.html" class="brand">
-    <div class="brand-icon">💬</div>
-    <span class="brand-name">카카오 알림톡</span>
+    <span class="brand-name">We-Connect</span>
   </a>
   <div class="spacer"></div>
   <a href="/index.html">발송</a>
@@ -56,34 +55,6 @@
     </div>
   </div>
 
-  <!-- 카카오 API 설정 -->
-  <div class="card">
-    <div class="card-header">🔑 카카오 API 설정</div>
-    <div class="card-body">
-      <div class="form-group">
-        <label>App Key (REST API Key)</label>
-        <input type="text" id="appKey" placeholder="카카오 REST API 키">
-      </div>
-      <div class="form-group">
-        <label>Sender Key <small style="color:var(--txt-3);font-weight:normal">(발신 프로필 키)</small></label>
-        <input type="text" id="senderKey" placeholder="알림톡 발신 프로필 키">
-      </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
-        <div class="form-group" style="flex:1;margin-bottom:0">
-          <label>발송자 아이디 <small style="color:var(--txt-3);font-weight:normal">(알리고 ID)</small></label>
-          <input type="text" id="userId" placeholder="알리고 아이디">
-        </div>
-        <div class="form-group" style="flex:1;margin-bottom:0">
-          <label>발신 번호</label>
-          <input type="text" id="senderNum" placeholder="01012345678">
-        </div>
-      </div>
-      <div style="margin-top:14px">
-        <button class="btn btn-kakao" onclick="saveApiKeys()">💾 저장</button>
-      </div>
-    </div>
-  </div>
-
   <!-- 대표 이메일 SMTP 설정 -->
   <div class="card">
     <div class="card-header">📧 대표 이메일 SMTP 설정</div>
@@ -122,10 +93,12 @@
           <input type="text" id="smtpFromName" placeholder="웹케시">
         </div>
       </div>
-      <div style="background:var(--bg-sub);border:1px solid var(--bdr-s);border-radius:var(--r8);padding:10px 12px;margin-top:12px;font-size:12px;color:var(--txt-3);line-height:1.6">
-        💡 Gmail SMTP로 연결하고 표시 이메일을 회사 주소로 설정하면, 수신자에게 회사 메일로 온 것처럼 보입니다.<br>
-        단, 개인 @gmail.com 계정은 일부 메일함에서 "xxx@gmail.com을 대신하여"로 표시될 수 있습니다.<br>
-        Google Workspace(@company.com) 계정을 사용하면 이 문구가 표시되지 않습니다.
+      <div style="background:var(--bg-sub);border:1px solid var(--bdr-s);border-radius:var(--r8);padding:10px 12px;margin-top:12px;font-size:12px;color:var(--txt-3);line-height:1.7">
+        💡 <strong style="color:var(--txt-2)">수신자에게 보이는 발신자 이메일은 각 사용자의 프로필 이메일로 자동 설정됩니다.</strong><br>
+        예: j21h2002 사용자가 발송하면 → 수신자에게 <code style="background:#e8eaf6;padding:1px 5px;border-radius:3px;color:#3949ab">leewk@webcash.co.kr</code> 에서 온 것처럼 표시<br><br>
+        ✅ <strong style="color:var(--txt-2)">가장 깔끔한 방법</strong>: SMTP 계정 = 사용자 프로필 이메일<br>
+        &nbsp;&nbsp;&nbsp;→ 회사 메일서버(smtp.webcash.co.kr) 또는 Google Workspace(@webcash.co.kr) 사용 시 "대신하여" 문구 없이 완벽하게 발송<br><br>
+        ⚠️ 개인 @gmail.com 계정으로 회사 메일을 발송하면 "xxx@gmail.com을 대신하여"가 표시될 수 있습니다.
       </div>
       <div style="margin-top:14px">
         <button class="btn btn-kakao" onclick="saveEmailConfig()">💾 저장</button>
@@ -272,7 +245,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     return
   }
   setupNavByRole(user.role)
-  loadConfig()
   loadEmailConfig()
   loadCompanyEmails()
   loadBackupList()
@@ -558,28 +530,6 @@ async function deleteCompanyEmail(id, label) {
   if (error) { showToast('삭제 실패: ' + error.message, 'danger'); return }
   showToast('삭제되었습니다.')
   loadCompanyEmails()
-}
-
-// ── 카카오 API 설정 ───────────────────────────────────
-async function loadConfig() {
-  const { data } = await sb.from('kakao_config').select('*').eq('id', 1).single()
-  if (data) {
-    document.getElementById('appKey').value    = data.app_key    || ''
-    document.getElementById('senderKey').value = data.sender_key || ''
-    document.getElementById('userId').value    = data.user_id    || ''
-    document.getElementById('senderNum').value = data.sender_num || ''
-  }
-}
-
-async function saveApiKeys() {
-  const app_key    = document.getElementById('appKey').value.trim()
-  const sender_key = document.getElementById('senderKey').value.trim()
-  const user_id    = document.getElementById('userId').value.trim()
-  const sender_num = document.getElementById('senderNum').value.replace(/[-\s]/g,'')
-
-  const { error } = await sb.from('kakao_config').upsert({ id:1, app_key, sender_key, user_id, sender_num })
-  if (error) { showToast('저장 실패: ' + error.message, 'danger'); return }
-  showToast('설정이 저장되었습니다.')
 }
 
 // ── 이메일 SMTP 설정 ──────────────────────────────────
